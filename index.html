@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>晶粒构型实验台 · Grain Atelier</title>
+<title>Seashell-Inspired Grain Structure Workbench</title>
 <style>
 :root{font-family:"Segoe UI Variable","Microsoft YaHei",sans-serif;color:#182842;background:#f3f5fa;font-synthesis:none;--ink:#182842;--muted:#596982;--line:#e2e8f2;--blue:#333cc5}
 *{box-sizing:border-box}body{margin:0}button,input,select{font:inherit;color:inherit}button,select{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #5362e9;outline-offset:2px}button{border:1px solid var(--line);background:white;border-radius:8px;padding:8px 12px;font-size:.85rem;font-weight:650}button:hover{border-color:#7983e9;color:var(--blue)}button:disabled{opacity:.45;cursor:default}header{height:68px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 32px;gap:12px}.brand{display:flex;align-items:center;gap:11px;font-weight:750}.mark{background:#343bc0;color:white;border-radius:9px;display:grid;place-items:center;width:34px;height:34px;font-size:24px}.brand small{display:block;color:var(--muted);font-weight:550;font-size:.72rem;letter-spacing:.08em}header nav{display:flex;gap:8px}.primary{background:var(--blue);color:white;border-color:var(--blue)}.primary:hover{color:white;background:#242ba2}.layout{max-width:1550px;margin:auto;padding:30px 32px 24px}.intro{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:21px}h1{font-size:clamp(25px,3vw,38px);letter-spacing:-.055em;margin:0 0 7px}.intro p{margin:0;color:var(--muted);font-size:.93rem}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}.panel{background:white;border:1px solid var(--line);border-radius:15px;box-shadow:0 8px 25px #25386609;min-width:0}.viewer{overflow:hidden}.viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}.viewer-head strong{font-size:.92rem}.tabs{display:flex;gap:4px;background:#f1f3f8;border-radius:9px;padding:3px}.tabs button{background:transparent;border-color:transparent;padding:6px 10px;color:var(--muted)}.tabs button[aria-pressed=true]{background:white;color:var(--blue);box-shadow:0 1px 4px #24325718}.stage{position:relative;height:clamp(400px,62vh,690px);background-color:#f7f9fd;background-image:radial-gradient(#9aaaca5a 1px,transparent 1px);background-size:18px 18px;overflow:hidden}.stage svg{width:100%;height:100%;display:block;touch-action:none;cursor:grab}.stage svg:active{cursor:grabbing}.tools{position:absolute;right:14px;top:14px;display:flex;gap:4px}.tools button{min-width:35px;padding:7px}.legend{display:flex;flex-wrap:wrap;align-items:center;gap:10px 19px;padding:13px 17px;border-top:1px solid var(--line);font-size:.83rem;color:var(--muted)}.legend span{display:inline-flex;align-items:center;gap:6px}.sw{height:11px;width:11px;border-radius:3px;display:inline-block}.stats{margin-left:auto}.sidebar{padding:0 17px 14px}.section{padding:15px 0;border-bottom:1px solid var(--line)}.section:last-child{border-bottom:0;padding-bottom:0}h2{font-size:.98rem;margin:0 0 11px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}label{display:grid;gap:5px;font-size:.82rem;color:var(--muted)}input,select{padding:7px 8px;border:1px solid #dbe3ef;border-radius:7px;background:#fff;width:100%;min-width:0;font-size:.86rem}input[type=checkbox]{width:auto}.pattern{display:grid;grid-template-columns:52px repeat(3,minmax(0,1fr));align-items:center;gap:6px;margin-bottom:6px}.pattern small{font-size:.77rem;color:var(--muted);text-align:center}.pattern strong{font-size:.82rem}.sub{font-size:.77rem;line-height:1.5;color:var(--muted);margin:7px 0 0}.stack{display:grid;grid-template-columns:1fr 90px;gap:8px}.presets{display:flex;flex-wrap:wrap;gap:5px}.presets button{font-size:.78rem;padding:6px 8px}.error{color:#9b2c3b;font-size:.82rem;margin:10px 0 0}.source{font-size:.78rem;color:var(--muted);margin:13px 0 0}.source a{color:var(--blue)}.layer-control{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}.layer-control select{width:auto}.viewer-actions{display:flex;gap:8px;align-items:center}
@@ -52,30 +52,30 @@ body:has(.sidebar[data-collapsed=true]) .stage svg{width:100%}
   .tools{left:10px;bottom:76px}
 }
 </style>
-<header><div class="brand"><span class="mark" aria-hidden="true">⬡</span><div>晶粒构型实验台<small>GRAIN ATELIER</small></div></div><nav aria-label="导出"><button id="csv">下载 CSV</button><button id="svg" class="primary">下载 SVG</button></nav></header>
+<header><div class="brand"><span class="mark" aria-hidden="true">⬡</span><div>Seashell-Inspired Grain Structure Workbench</div></div><nav aria-label="Export"><button id="csv">Export CSV</button><button id="svg" class="primary">Export SVG</button></nav></header>
 <main class="layout">
-<div class="intro"><div><h1>仿生晶粒结构</h1><p>编排晶胞取向、样式循环与层间错位。</p></div></div>
+<div class="intro"><div><h1>Bioinspired Grain Structure</h1><p>Design cell orientations, repeat patterns, and offset layers.</p></div></div>
 <div class="workspace">
-<section class="panel viewer" aria-label="结构预览">
-<div class="viewer-head"><strong>结构预览</strong><div class="viewer-actions"><label class="layer-control">查看<select id="layer"></select></label><div class="tabs"><button type="button" id="stacked" aria-pressed="true">立体</button><button type="button" id="single" aria-pressed="false">俯视</button></div></div></div>
-<div class="stage"><svg id="canvas" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="六边形晶粒结构"></svg><div class="tools"><button id="minus" aria-label="缩小">−</button><button id="plus" aria-label="放大">+</button><button id="fit">复位</button></div></div>
+<section class="panel viewer" aria-label="Structure Preview">
+<div class="viewer-head"><strong>Structure Preview</strong><div class="viewer-actions"><label class="layer-control">Layer<select id="layer"></select></label><div class="tabs"><button type="button" id="stacked" aria-pressed="true">Isometric</button><button type="button" id="single" aria-pressed="false">Top</button></div></div></div>
+<div class="stage"><svg id="canvas" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hexagonal grain structure"></svg><div class="tools"><button id="minus" aria-label="Zoom out">−</button><button id="plus" aria-label="Zoom in">+</button><button id="fit">Reset</button></div></div>
 <div class="legend"><span><i class="sw" style="background:#7463bc"></i>30°</span><span><i class="sw" style="background:#368f8b"></i>90°</span><span><i class="sw" style="background:#d18162"></i>150°</span><span id="stats" class="stats" aria-live="polite"></span></div>
 </section>
 <form class="panel sidebar" id="controls" data-collapsed="false">
-<div class="contents"><div class="panel-heading"><strong>参数</strong><button type="button" id="togglePanel" aria-expanded="true">收起</button></div><div role="tablist" aria-label="参数目录"><button type="button" role="tab" id="tab-geometry" aria-controls="panel-geometry" aria-selected="true">尺寸与单元</button><button type="button" role="tab" id="tab-intralayer" aria-controls="panel-intralayer" aria-selected="false" tabindex="-1">层内铺排</button><button type="button" role="tab" id="tab-interlayer" aria-controls="panel-interlayer" aria-selected="false" tabindex="-1">层间堆叠</button></div></div>
+<div class="contents"><div class="panel-heading"><strong>Parameters</strong><button type="button" id="togglePanel" aria-expanded="true">Hide</button></div><div role="tablist" aria-label="Parameter tabs"><button type="button" role="tab" id="tab-geometry" aria-controls="panel-geometry" aria-selected="true">Geometry</button><button type="button" role="tab" id="tab-intralayer" aria-controls="panel-intralayer" aria-selected="false" tabindex="-1">In-layer Layout</button><button type="button" role="tab" id="tab-interlayer" aria-controls="panel-interlayer" aria-selected="false" tabindex="-1">Layer Stacking</button></div></div>
 <div class="tab-body" id="panel-geometry" role="tabpanel" aria-labelledby="tab-geometry">
-<section class="section" id="geometry"><h2>样品尺寸</h2><div class="grid"><label>长 / mm<input id="width" type="number" min="1" max="250" step="any" value="35" required></label><label>宽 / mm<input id="height" type="number" min="1" max="250" step="any" value="24" required></label><label>边长 / mm<input id="edge" type="number" min=".25" max="50" step="any" value="2" required></label></div></section>
-<section class="section"><h2>晶胞样式</h2><div class="style-tabs" role="group" aria-label="晶胞样式目录"><button type="button" data-style="1" aria-pressed="true">样式 1</button><button type="button" data-style="2" aria-pressed="false">样式 2</button><button type="button" data-style="3" aria-pressed="false">样式 3</button></div><div id="patterns"></div><div class="unit-card"><span id="unitLabel">样式 1 预览</span><svg id="unit" role="img" aria-label="单个三晶胞样式"></svg></div></section>
+<section class="section" id="geometry"><h2>Sample Dimensions</h2><div class="grid"><label>Length / mm<input id="width" type="number" min="1" max="250" step="any" value="35" required></label><label>Width / mm<input id="height" type="number" min="1" max="250" step="any" value="24" required></label><label>Cell edge / mm<input id="edge" type="number" min=".25" max="50" step="any" value="2" required></label></div></section>
+<section class="section"><h2>Cell Patterns</h2><div class="style-tabs" role="group" aria-label="Cell pattern tabs"><button type="button" data-style="1" aria-pressed="true">Pattern 1</button><button type="button" data-style="2" aria-pressed="false">Pattern 2</button><button type="button" data-style="3" aria-pressed="false">Pattern 3</button></div><div id="patterns"></div><div class="unit-card"><span id="unitLabel">Pattern 1 preview</span><svg id="unit" role="img" aria-label="Three-cell pattern preview"></svg></div></section>
 </div>
 <div class="tab-body" id="panel-intralayer" role="tabpanel" aria-labelledby="tab-intralayer" hidden>
-<section class="section"><h2>层内铺排</h2><label>总层数<input id="totalLayers" type="number" min="1" max="24" step="1" value="3" required></label><div class="mode-row" role="group" aria-label="层内序列模式"><button type="button" id="innerDirect" aria-pressed="true">不循环</button><button type="button" id="innerCycle" aria-pressed="false">循环</button></div><label id="innerCountLabel" hidden>循环序列数<input id="innerCount" type="number" min="1" max="24" value="3" required disabled></label><button type="button" id="addSequence" class="spaced">＋ 添加序列</button><div id="sequences" class="spaced"></div><p id="sequenceNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">每条序列填样式 1、2、3，例如 1 3 2。每层按对应序列铺满。</p></section>
+<section class="section"><h2>In-layer Layout</h2><label>Total layers<input id="totalLayers" type="number" min="1" max="24" step="1" value="3" required></label><div class="mode-row" role="group" aria-label="In-layer sequence mode"><button type="button" id="innerDirect" aria-pressed="true">No repeat</button><button type="button" id="innerCycle" aria-pressed="false">Repeat</button></div><label id="innerCountLabel" hidden>Sequences per cycle<input id="innerCount" type="number" min="1" max="24" value="3" required disabled></label><button type="button" id="addSequence" class="spaced">＋ Add sequence</button><div id="sequences" class="spaced"></div><p id="sequenceNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">Use pattern numbers 1, 2, or 3, for example 1 3 2. Each sequence tiles its layer.</p></section>
 </div>
 <div class="tab-body" id="panel-interlayer" role="tabpanel" aria-labelledby="tab-interlayer" hidden>
-<section class="section"><div class="section-title"><h2>层间堆叠</h2><div class="presets" role="group" aria-label="堆叠预设"><button type="button" data-preset="ααα" aria-pressed="false">ααα</button><button type="button" data-preset="αβγ" aria-pressed="false">αβγ</button><button type="button" data-preset="" aria-pressed="true">自定义</button></div></div><fieldset id="stackControls"><div class="mode-row" role="group" aria-label="层间序列模式"><button type="button" id="stackDirect" aria-pressed="true">不循环</button><button type="button" id="stackCycle" aria-pressed="false">循环</button></div><label id="stackCountLabel" hidden>循环序列数<input id="stackCount" type="number" min="1" max="24" value="3" required disabled></label><label class="spaced">堆叠序列<input id="stackOrder" value="α β γ" maxlength="95" spellcheck="false" required></label></fieldset><p id="stackNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">只可填写 α、β、γ，例如 ααβ 或 α β γ。可用空格、逗号分隔。相同字母使用相同偏移，α 为基准。</p></section>
+<section class="section"><div class="section-title"><h2>Layer Stacking</h2><div class="presets" role="group" aria-label="Stacking presets"><button type="button" data-preset="ααα" aria-pressed="false">ααα</button><button type="button" data-preset="αβγ" aria-pressed="false">αβγ</button><button type="button" data-preset="" aria-pressed="true">Custom</button></div></div><fieldset id="stackControls"><div class="mode-row" role="group" aria-label="Stacking sequence mode"><button type="button" id="stackDirect" aria-pressed="true">No repeat</button><button type="button" id="stackCycle" aria-pressed="false">Repeat</button></div><label id="stackCountLabel" hidden>Sequences per cycle<input id="stackCount" type="number" min="1" max="24" value="3" required disabled></label><label class="spaced">Stacking sequence<input id="stackOrder" value="α β γ" maxlength="95" spellcheck="false" required></label></fieldset><p id="stackNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">Use only α, β, and γ, for example ααβ or α β γ. Spaces and commas are allowed. Layers with the same letter share an offset. α is the baseline.</p></section>
 </div>
 <p id="error" class="error" role="alert" hidden></p>
 </form>
-</div><p class="source">结构参考 <a href="https://doi.org/10.1038/s41467-024-53850-w" target="_blank" rel="noopener">Yu 等 · Nature Communications (2024)</a></p>
+</div><p class="source">Structure reference <a href="https://doi.org/10.1038/s41467-024-53850-w" target="_blank" rel="noopener">Yu et al. · Nature Communications (2024)</a></p>
 </main>
 <script>
 "use strict";
@@ -98,7 +98,7 @@ let model, mode="stacked", zoom=1, pan=[0,0], drag=null;
 let innerMode="direct",stackMode="direct",preset="",selectedStyle="1";
 
 $("patterns").innerHTML=keys.map(key=>'<div class="style-row" id="style-row-'+key+'" '+(key==="1"?"":"hidden")+'>'+
-  schemes[key].map((angle,i)=>'<label>位置 '+slots[i]+'<select id="style-'+key+'-'+i+'" aria-label="样式 '+key+' 位置 '+slots[i]+'">'+Object.keys(palette).map(option=>'<option value="'+option+'" '+(String(angle)===option?'selected':'')+'>'+option+'°</option>').join('')+'</select></label>').join('')+'</div>').join('');
+  schemes[key].map((angle,i)=>'<label>Position '+slots[i]+'<select id="style-'+key+'-'+i+'" aria-label="Pattern '+key+' Position '+slots[i]+'">'+Object.keys(palette).map(option=>'<option value="'+option+'" '+(String(angle)===option?'selected':'')+'>'+option+'°</option>').join('')+'</select></label>').join('')+'</div>').join('');
 
 function showSequenceRows(){
   const list=$("sequences");
@@ -109,13 +109,13 @@ function showSequenceRows(){
   Array.from({length:count},(_,i)=>values[i]??defaultSequences[i%defaultSequences.length]).forEach((value,index)=>{
     const row=document.createElement("div");
     row.className="sequence-row";
-    row.innerHTML='<label>序列 '+(index+1)+'<input maxlength="45" spellcheck="false" required></label><button type="button">×</button>';
+    row.innerHTML='<label>Sequence '+(index+1)+'<input maxlength="45" spellcheck="false" required></label><button type="button">×</button>';
     const input=row.querySelector("input"),remove=row.querySelector("button");
     input.value=value;
     input.addEventListener("input",()=>{values[index]=input.value});
     remove.hidden=innerMode==="cycle";
     remove.disabled=values.length===1;
-    remove.setAttribute("aria-label","删除序列 "+(index+1));
+    remove.setAttribute("aria-label","Remove sequence "+(index+1));
     remove.onclick=()=>{values.splice(index,1);showSequenceRows();update()};
     list.append(row);
   });
@@ -125,9 +125,9 @@ const parseStack=value=>Array.from(value.toLowerCase().replace(/[\s,，、→-]/
 function getStack(total){
   if(preset) return Array.from({length:total},(_,i)=>Array.from(preset)[i%3]);
   const symbols=parseStack($("stackOrder").value);
-  if(!symbols.length||symbols.some(symbol=>!"αβγ".includes(symbol))) throw Error("堆叠序列只能填写 α、β、γ，可用空格或逗号分隔。");
+  if(!symbols.length||symbols.some(symbol=>!"αβγ".includes(symbol))) throw Error("Use only α, β, and γ in the stacking sequence. Spaces and commas are allowed.");
   const expected=stackMode==="cycle"?+$("stackCount").value:total;
-  if(symbols.length!==expected) throw Error("层间堆叠需要填写 "+expected+" 个字母，目前为 "+symbols.length+" 个。");
+  if(symbols.length!==expected) throw Error("Enter "+expected+" stacking letters. You entered "+symbols.length+".");
   return Array.from({length:total},(_,i)=>symbols[i%symbols.length]);
 }
 
@@ -165,17 +165,17 @@ function build(){
   const width=+$("width").value,height=+$("height").value,edge=+$("edge").value;
   const total=+$("totalLayers").value;
   const count=innerMode==="cycle"?+$("innerCount").value:entries.direct.length;
-  if(count>total) throw Error("层内序列数不能超过总层数。");
-  if(!$("controls").checkValidity()) throw Error("请输入有效的尺寸、总层数与序列。");
+  if(count>total) throw Error("The number of in-layer sequences cannot exceed the layer count.");
+  if(!$("controls").checkValidity()) throw Error("Enter valid dimensions, a layer count, and a sequence.");
   const sequences=Array.from($("sequences").querySelectorAll("input"),input=>input.value.replace(/[\s,，、→-]/g,""));
-  if(sequences.some(sequence=>!/^[123]+$/.test(sequence))) throw Error("每条序列只能使用样式 1、2、3。");
+  if(sequences.some(sequence=>!/^[123]+$/.test(sequence))) throw Error("Each in-layer sequence must contain only pattern numbers 1, 2, and 3.");
   const layers=Array.from({length:total},(_,i)=>innerMode==="cycle"?i%sequences.length:Math.min(i,sequences.length-1));
   const layouts=getStack(total);
   const pitch=root3*edge;
   // A three-cell basis on the triangular lattice. These bases tile without overlap.
   const basis=[[0,0],[1,0],[0,1]];
   const spanX=Math.ceil(width/pitch)+5,spanY=Math.ceil(height/(1.5*edge))+5;
-  if(spanX*spanY*layers.length>42000) throw Error("晶胞数量过多，请增大边长或减少层数。");
+  if(spanX*spanY*layers.length>42000) throw Error("Too many cells. Increase the cell edge length or reduce the layer count.");
   const groups=[];
   // Three cosets cover the honeycomb; halo anchors supply clipped boundary cells.
   for(let row=-3;row<spanY;row++){
@@ -212,13 +212,13 @@ function fillDefs(prefix,spacing){
 }
 
 function face(c,prefix,stroke){
-  return '<polygon points="'+coords(c.points)+'" fill="url(#'+prefix+c.angle+')" stroke="'+palette[c.angle].line+'" stroke-linejoin="round" stroke-width="'+stroke+'"><title>样式 '+c.style+' · 位置 '+c.slot+' · '+c.angle+'°</title></polygon>';
+  return '<polygon points="'+coords(c.points)+'" fill="url(#'+prefix+c.angle+')" stroke="'+palette[c.angle].line+'" stroke-linejoin="round" stroke-width="'+stroke+'"><title>Pattern '+c.style+' · Position '+c.slot+' · '+c.angle+'°</title></polygon>';
 }
 
 function showUnit(){
   const style=selectedStyle;
   const centers=[[0,0],[root3,0],[root3/2,1.5]];
-  $("unitLabel").textContent="样式 "+style+" 预览";
+  $("unitLabel").textContent="Pattern "+style+" preview";
   $("unit").setAttribute("viewBox","-1.05 -1.12 3.84 3.78");
   $("unit").innerHTML='<defs>'+fillDefs("mini-",.23)+'</defs>'+centers.map(([x,y],i)=>
     face({points:polygon(x,y,1),angle:+$("style-"+style+"-"+i).value,style,slot:slots[i]},"mini-",.035)+
@@ -258,21 +258,21 @@ function render(){
       return '<g opacity="'+(solid&&i<current?.19:1)+'">'+walls+
         '<g transform="matrix('+matrix.join(" ")+' 0 '+z+')">'+cells.map(c=>face(c,"face-",stroke)).join("")+'</g></g>';
     }).join("");
-  $("stats").textContent="第 "+(current+1)+" / "+grids.length+" 层 · 序列 "+(layers[current]+1)+" · 堆叠 "+model.layouts[current]+" · "+grids[current].length+" 晶胞";
+  $("stats").textContent="Layer "+(current+1)+" of "+grids.length+" · Sequence "+(layers[current]+1)+" · Stack "+model.layouts[current]+" · "+grids[current].length+" cells";
 }
 
 function update(){
   const total=+$("totalLayers").value;
   const count=innerMode==="cycle"?+$("innerCount").value:entries.direct.length;
   $("addSequence").disabled=!Number.isInteger(total)||total>24||count>=total;
-  $("sequenceNote").textContent=count+" 条序列 / "+(total||"—")+" 层。"+(innerMode==="cycle"?"按序循环，到总层数即停止。":"逐层使用，剩余层沿用最后一条。");
-  $("stackNote").textContent=preset?"已锁定为 "+preset+"，按预设铺到总层数。":stackMode==="cycle"?"填写 "+(+$("stackCount").value||"—")+" 个字母，循环至总层数。":"填写 "+(total||"—")+" 个字母，每层一个。";
+  $("sequenceNote").textContent=count+" sequences / "+(total||"—")+" layers. "+(innerMode==="cycle"?"Repeat in order and stop at the layer limit.":"Use each sequence once, then hold the last sequence.");
+  $("stackNote").textContent=preset?"Preset "+preset+" is locked and repeats to the layer limit.":stackMode==="cycle"?"Enter "+(+$("stackCount").value||"—")+" letters to repeat.":"Enter "+(total||"—")+" letters, one per layer.";
   try{
     showUnit();
     const next=build();
     const old=+$("layer").value||0;
     model=next;
-    $("layer").innerHTML=model.layers.map((sequence,i)=>'<option value="'+i+'">第 '+(i+1)+' 层 · '+model.layouts[i]+'</option>').join("");
+    $("layer").innerHTML=model.layers.map((sequence,i)=>'<option value="'+i+'">Layer '+(i+1)+' · '+model.layouts[i]+'</option>').join("");
     $("layer").value=Math.min(old,model.layers.length-1);
     $("error").hidden=true;
     $("svg").disabled=$("csv").disabled=false;
@@ -303,7 +303,7 @@ $("controls").addEventListener("input",update);
 function togglePanel(collapsed){
   $("controls").dataset.collapsed=String(collapsed);
   $("togglePanel").setAttribute("aria-expanded",!collapsed);
-  $("togglePanel").textContent=collapsed?"展开":"收起";
+  $("togglePanel").textContent=collapsed?"Show":"Hide";
 }
 $("togglePanel").onclick=()=>togglePanel($("controls").dataset.collapsed!=="true");
 togglePanel(matchMedia("(max-width: 730px)").matches);

@@ -1,18 +1,20 @@
-# 晶粒构型实验台 · Grain Atelier
+# Seashell-Inspired Grain Structure Workbench
 
-一个可在浏览器中生成、预览和导出仿生六边形晶粒结构的工具。
+A browser-based tool for generating, viewing, and exporting layered hexagonal grain structures inspired by seashells.
 
-## 使用方法
+## Live demo
 
-1. 下载仓库中的 `index.html`，双击用浏览器打开。页面无需安装依赖。
-2. 在「尺寸与单元」设置样品长宽、六边形边长，以及三种样式中各晶胞的走线角度。
-3. 在「层内铺排」设置总层数和样式序列，在「层间堆叠」选择 ααα、αβγ 或输入自定义序列。
-4. 用「立体／俯视」切换视图。选择下方层时，上方各层会淡化。悬浮参数面板可以收起。
-5. 页面右上角可导出 SVG 视图及 CSV 晶胞坐标与裁切轮廓。
+[Open the Workbench](https://yinzxmail-cmd.github.io/seashell-inspired-grain-structure-workbench/)
 
-此版本使用固定立体视角。滚轮缩放，拖动画布平移，点击「复位」恢复默认显示。
+## Getting started
 
-## 参考
+1. Open the live demo or download `index.html` and open it in a browser. No installation is required.
+2. In **Geometry**, enter the sample dimensions and hexagon edge length. Edit the three orientations within each cell pattern.
+3. In **In-layer Layout**, specify the total layers and pattern sequences. In **Layer Stacking**, select ααα or αβγ, or enter a custom sequence using α, β, and γ.
+4. Switch between **Isometric** and **Top** views. Selecting a deeper layer fades the layers above it. Drag to pan, scroll to zoom, or click **Reset** to restore the default view.
+5. Export the current view as SVG or download a CSV of cell positions and clipped outlines.
 
-- 界面布局参考 [Pretty Lattice](https://github.com/songfeitong/pretty-lattice)。
-- 结构设计参考 [Yu 等，Nature Communications (2024)](https://doi.org/10.1038/s41467-024-53850-w)。
+## References
+
+- Interface inspiration: [Pretty Lattice](https://github.com/songfeitong/pretty-lattice).
+- Structural inspiration: [Yu et al., Nature Communications (2024)](https://doi.org/10.1038/s41467-024-53850-w).
