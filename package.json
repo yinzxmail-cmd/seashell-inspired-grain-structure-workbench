@@ -1,0 +1,13 @@
+{
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright": "1.65.1",
+    "three": "0.187.0"
+  },
+  "name": "seashell-inspired-grain-structure-workbench",
+  "scripts": {
+    "test": "node --test",
+    "build": "esbuild src/grain-3d.js --bundle --minify --format=iife --global-name=Grain3D --outfile=grain-3d.bundle.js"
+  },
+  "private": true
+}

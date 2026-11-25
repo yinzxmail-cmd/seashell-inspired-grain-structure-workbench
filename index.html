@@ -43,13 +43,30 @@ header{height:62px}.mark{background:#333b79}.primary:hover{background:#303773}
 .sidebar[data-collapsed=true] [role=tablist],.sidebar[data-collapsed=true] .tab-body,.sidebar[data-collapsed=true] .error{display:none!important}
 body:has(.sidebar[data-collapsed=true]) .stage svg{width:100%}
 .source{margin:0;padding:9px 18px;border-top:1px solid var(--line);font-size:.75rem}
-@media(max-width:950px){.sidebar{width:min(295px,calc(100% - 34px))}.stage svg{width:calc(100% - 278px)}}
-@media(max-width:730px){
+.interactive{position:relative;width:calc(100% - 364px);height:100%}
+.interactive canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.interactive canvas:active{cursor:grabbing}
+body:has(.sidebar[data-collapsed=true]) .interactive{width:100%}
+.render-notice{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:8px;padding:20px;text-align:center;pointer-events:none}
+.render-notice p{margin:0;padding:8px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:.85rem}
+.render-notice button{pointer-events:auto}
+.view-help{align-self:center;margin-left:6px;padding:5px 7px;background:#fcfdff;color:var(--muted);font-size:.75rem}
+@media(max-width:950px){
+  .sidebar{width:min(295px,calc(100% - 34px))}.stage svg{width:calc(100% - 278px)}
+  .interactive{width:calc(100% - 329px)}
+  .contents [role=tablist] button{font-size:.71rem}
+}
+@media(max-width:850px){
   .viewer-head{left:10px;top:10px}.viewer-head>strong{display:none}.viewer-actions{gap:5px}
   .sidebar{top:57px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 133px)}
   .tab-body{max-height:calc(100dvh - 230px);min-height:0;overflow:auto}
-  .stage svg{width:100%}.legend{left:10px;bottom:10px;gap:6px 12px;max-width:calc(100% - 20px)}
+  .stage svg,.interactive{width:100%}.legend{left:10px;bottom:10px;gap:6px 12px;max-width:calc(100% - 20px)}
   .tools{left:10px;bottom:76px}
+  .view-help,.tabs button{margin-left:0;padding-inline:7px}
+}
+@media(max-width:480px){
+  .brand{font-size:.8rem;gap:8px}.mark{flex:0 0 28px;height:28px;font-size:21px}
+  header nav{gap:5px}header nav button{font-size:.74rem;padding:6px 7px}
 }
 </style>
 <header><div class="brand"><span class="mark" aria-hidden="true">⬡</span><div>Seashell-Inspired Grain Structure Workbench</div></div><nav aria-label="Export"><button id="csv">Export CSV</button><button id="svg" class="primary">Export SVG</button></nav></header>
@@ -57,8 +74,14 @@ body:has(.sidebar[data-collapsed=true]) .stage svg{width:100%}
 <div class="intro"><div><h1>Bioinspired Grain Structure</h1><p>Design cell orientations, repeat patterns, and offset layers.</p></div></div>
 <div class="workspace">
 <section class="panel viewer" aria-label="Structure Preview">
-<div class="viewer-head"><strong>Structure Preview</strong><div class="viewer-actions"><label class="layer-control">Layer<select id="layer"></select></label><div class="tabs"><button type="button" id="stacked" aria-pressed="true">Isometric</button><button type="button" id="single" aria-pressed="false">Top</button></div></div></div>
-<div class="stage"><svg id="canvas" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hexagonal grain structure"></svg><div class="tools"><button id="minus" aria-label="Zoom out">−</button><button id="plus" aria-label="Zoom in">+</button><button id="fit">Reset</button></div></div>
+<div class="viewer-head"><strong>Structure Preview</strong><div class="viewer-actions"><label class="layer-control">Layer<select id="layer"></select></label><div class="tabs" role="group" aria-label="Preview view"><button type="button" id="three" aria-pressed="false" hidden>3D</button><button type="button" id="stacked" aria-pressed="true">Isometric</button><button type="button" id="single" aria-pressed="false">Top</button></div></div></div>
+<div class="stage">
+  <svg id="canvas" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hexagonal grain structure"></svg>
+  <div class="interactive" id="interactive" hidden>
+    <div id="renderNotice" class="render-notice" hidden><p id="renderStatus" role="status"></p><button type="button" id="retry3d" hidden>Retry 3D</button></div>
+  </div>
+  <div class="tools"><button id="minus" aria-label="Zoom out">−</button><button id="plus" aria-label="Zoom in">+</button><button id="fit">Reset</button><span id="viewHelp" class="view-help" hidden>Drag to rotate · Scroll to zoom · Right-drag to pan</span></div>
+</div>
 <div class="legend"><span><i class="sw" style="background:#7463bc"></i>30°</span><span><i class="sw" style="background:#368f8b"></i>90°</span><span><i class="sw" style="background:#d18162"></i>150°</span><span id="stats" class="stats" aria-live="polite"></span></div>
 </section>
 <form class="panel sidebar" id="controls" data-collapsed="false">
@@ -77,6 +100,7 @@ body:has(.sidebar[data-collapsed=true]) .stage svg{width:100%}
 </form>
 </div><p class="source">Structure reference <a href="https://doi.org/10.1038/s41467-024-53850-w" target="_blank" rel="noopener">Yu et al. · Nature Communications (2024)</a></p>
 </main>
+<script src="./grain-3d.bundle.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -94,7 +118,7 @@ const stacks={direct:"α β γ",cycle:"α β γ"};
 const viewer=$("canvas");
 const root3=Math.sqrt(3);
 const round=n=>+n.toFixed(5);
-let model, mode="stacked", zoom=1, pan=[0,0], drag=null;
+let model, preview, updateFrame=null, mode="stacked", zoom=1, pan=[0,0], drag=null;
 let innerMode="direct",stackMode="direct",preset="",selectedStyle="1";
 
 $("patterns").innerHTML=keys.map(key=>'<div class="style-row" id="style-row-'+key+'" '+(key==="1"?"":"hidden")+'>'+
@@ -228,9 +252,17 @@ function showUnit(){
 
 function render(){
   if(!model) return;
-  const {width,height,edge,grids,layers}=model;
   const current=+$("layer").value||0;
-  const solid=mode==="stacked",thickness=edge*.49,step=thickness;
+  if(mode==="three") preview.update(model,current);
+  else renderSvg(mode,zoom,pan);
+  const {grids,layers,layouts}=model;
+  $("stats").textContent="Layer "+(current+1)+" of "+grids.length+" · Sequence "+(layers[current]+1)+" · Stack "+layouts[current]+" · "+grids[current].length+" cells";
+}
+
+function renderSvg(viewMode,viewZoom,viewPan){
+  const {width,height,edge,grids}=model;
+  const current=+$("layer").value||0;
+  const solid=viewMode==="stacked",thickness=edge*.49,step=thickness;
   const matrix=solid?[.91,.24,-.41,.63]:[1,0,0,1];
   const project=([x,y],z=0)=>[matrix[0]*x+matrix[2]*y,matrix[1]*x+matrix[3]*y+z];
   const corners=[[0,0],[width,0],[width,height],[0,height]];
@@ -239,7 +271,7 @@ function render(){
   const minX=Math.min(...plane.map(p=>p[0]))-margin,minY=-margin;
   const w=Math.max(...plane.map(p=>p[0]))-minX+margin;
   const h=Math.max(...plane.map(p=>p[1]))+2*margin+(solid?grids.length*step:0);
-  viewer.setAttribute("viewBox",[minX+(w-w/zoom)/2+pan[0],minY+(h-h/zoom)/2+pan[1],w/zoom,h/zoom].join(" "));
+  viewer.setAttribute("viewBox",[minX+(w-w/viewZoom)/2+viewPan[0],minY+(h-h/viewZoom)/2+viewPan[1],w/viewZoom,h/viewZoom].join(" "));
   const indices=solid?grids.map((_,i)=>i).reverse():[current];
   const stroke=round(edge*.024);
   const shadow=solid?'<defs><filter id="depth-shadow" x="-30%" y="-40%" width="160%" height="180%"><feGaussianBlur stdDeviation="'+round(edge*.55)+'"/></filter></defs><polygon points="'+coords(corners.map(p=>project(p,grids.length*step+edge*.3)))+'" fill="#516584" opacity=".20" filter="url(#depth-shadow)"/>':"";
@@ -258,10 +290,11 @@ function render(){
       return '<g opacity="'+(solid&&i<current?.19:1)+'">'+walls+
         '<g transform="matrix('+matrix.join(" ")+' 0 '+z+')">'+cells.map(c=>face(c,"face-",stroke)).join("")+'</g></g>';
     }).join("");
-  $("stats").textContent="Layer "+(current+1)+" of "+grids.length+" · Sequence "+(layers[current]+1)+" · Stack "+model.layouts[current]+" · "+grids[current].length+" cells";
 }
 
 function update(){
+  if(updateFrame!==null) cancelAnimationFrame(updateFrame);
+  updateFrame=null;
   const total=+$("totalLayers").value;
   const count=innerMode==="cycle"?+$("innerCount").value:entries.direct.length;
   $("addSequence").disabled=!Number.isInteger(total)||total>24||count>=total;
@@ -286,8 +319,15 @@ function update(){
 
 function changeMode(next){
   mode=next;
+  const interactive=mode==="three";
+  $("three").setAttribute("aria-pressed",interactive);
   $("single").setAttribute("aria-pressed",mode==="single");
   $("stacked").setAttribute("aria-pressed",mode==="stacked");
+  $("interactive").hidden=!interactive;
+  $("viewHelp").hidden=!interactive;
+  $("svg").textContent=interactive?"Export Isometric SVG":"Export SVG";
+  viewer.toggleAttribute("hidden",interactive);
+  preview?.show(interactive);
   zoom=1;pan=[0,0];render();
 }
 
@@ -299,14 +339,16 @@ function save(filename,data,type){
 }
 
 $("controls").addEventListener("submit",e=>e.preventDefault());
-$("controls").addEventListener("input",update);
+$("controls").addEventListener("input",()=>{
+  if(updateFrame===null) updateFrame=requestAnimationFrame(update);
+});
 function togglePanel(collapsed){
   $("controls").dataset.collapsed=String(collapsed);
   $("togglePanel").setAttribute("aria-expanded",!collapsed);
   $("togglePanel").textContent=collapsed?"Show":"Hide";
 }
 $("togglePanel").onclick=()=>togglePanel($("controls").dataset.collapsed!=="true");
-togglePanel(matchMedia("(max-width: 730px)").matches);
+togglePanel(matchMedia("(max-width: 850px)").matches);
 document.querySelectorAll("[data-style]").forEach(button=>button.onclick=()=>{
   selectedStyle=button.dataset.style;
   keys.forEach(key=>$("style-row-"+key).hidden=key!==selectedStyle);
@@ -373,11 +415,18 @@ document.querySelectorAll("[data-preset]").forEach(button=>button.onclick=()=>{
 });
 $("single").onclick=()=>changeMode("single");
 $("stacked").onclick=()=>changeMode("stacked");
+$("three").onclick=()=>changeMode("three");
 $("layer").onchange=render;
-function changeZoom(factor){zoom=Math.max(.7,Math.min(5,zoom*factor));render()}
+function changeZoom(factor){
+  if(mode==="three") preview.zoom(factor);
+  else {zoom=Math.max(.7,Math.min(5,zoom*factor));render()}
+}
 $("plus").onclick=()=>changeZoom(1.25);
 $("minus").onclick=()=>changeZoom(.8);
-$("fit").onclick=()=>{zoom=1;pan=[0,0];render()};
+$("fit").onclick=()=>{
+  if(mode==="three") preview.reset();
+  else {zoom=1;pan=[0,0];render()}
+};
 viewer.addEventListener("wheel",e=>{e.preventDefault();changeZoom(e.deltaY<0?1.1:1/1.1)},{passive:false});
 viewer.addEventListener("pointerdown",e=>{
   if(e.button!==0)return;
@@ -393,16 +442,38 @@ viewer.addEventListener("pointermove",e=>{
 });
 viewer.addEventListener("lostpointercapture",()=>drag=null);
 $("svg").onclick=()=>{
+  if(updateFrame!==null) update();
+  if($("svg").disabled) return;
+  if(mode==="three") renderSvg("stacked",1,[0,0]);
   const snapshot=viewer.cloneNode(true);
+  snapshot.removeAttribute("hidden");
   const vb=viewer.viewBox.baseVal;
   snapshot.setAttribute("width","1400");
   snapshot.setAttribute("height",String(Math.round(1400*vb.height/vb.width)));
   save("grain-preview.svg",new XMLSerializer().serializeToString(snapshot),"image/svg+xml;charset=utf-8");
 };
 $("csv").onclick=()=>{
+  if(updateFrame!==null) update();
+  if($("csv").disabled) return;
   const rows=model.grids.flat().map(c=>[c.layer,c.sequence,c.letter,c.cycle,c.group,c.style,c.slot,c.angle,round(c.x),round(c.y),model.edge,'"'+coords(c.points)+'"'].join(","));
   save("grain-cells.csv","\ufefflayer,sequence,layout,cycle,group,style,slot,angle_deg,x_mm,y_mm,edge_mm,clipped_outline_mm\r\n"+rows.join("\r\n"),"text/csv;charset=utf-8");
 };
+if(globalThis.Grain3D&&globalThis.ResizeObserver){
+  preview=Grain3D.createPreview($("interactive"),palette,status=>{
+    const message={
+      loading:"Preparing the 3D view…",
+      lost:"The WebGL context was lost. Waiting for the browser to restore it.",
+      error:"The 3D view could not render. Retry 3D or switch to Isometric or Top.",
+    }[status];
+    $("renderNotice").hidden=!message;
+    $("renderStatus").textContent=message||"";
+    $("retry3d").hidden=status!=="lost"&&status!=="error";
+  });
+  $("retry3d").onclick=()=>preview.retry();
+  window.addEventListener("pagehide",event=>{if(!event.persisted) preview.dispose()});
+  $("three").hidden=false;
+  changeMode("three");
+}
 showSequenceRows();
 update();
 </script>
