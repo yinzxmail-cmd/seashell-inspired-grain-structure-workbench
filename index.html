@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>晶粒构型实验台 · Grain Atelier</title>
+<style>
+:root{font-family:"Segoe UI Variable","Microsoft YaHei",sans-serif;color:#182842;background:#f3f5fa;font-synthesis:none;--ink:#182842;--muted:#596982;--line:#e2e8f2;--blue:#333cc5}
+*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit;color:inherit}button,select{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #5362e9;outline-offset:2px}button{border:1px solid var(--line);background:white;border-radius:8px;padding:8px 12px;font-size:.85rem;font-weight:650}button:hover{border-color:#7983e9;color:var(--blue)}button:disabled{opacity:.45;cursor:default}header{height:68px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 32px;gap:12px}.brand{display:flex;align-items:center;gap:11px;font-weight:750}.mark{background:#343bc0;color:white;border-radius:9px;display:grid;place-items:center;width:34px;height:34px;font-size:24px}.brand small{display:block;color:var(--muted);font-weight:550;font-size:.72rem;letter-spacing:.08em}header nav{display:flex;gap:8px}.primary{background:var(--blue);color:white;border-color:var(--blue)}.primary:hover{color:white;background:#242ba2}.layout{max-width:1550px;margin:auto;padding:30px 32px 24px}.intro{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:21px}h1{font-size:clamp(25px,3vw,38px);letter-spacing:-.055em;margin:0 0 7px}.intro p{margin:0;color:var(--muted);font-size:.93rem}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}.panel{background:white;border:1px solid var(--line);border-radius:15px;box-shadow:0 8px 25px #25386609;min-width:0}.viewer{overflow:hidden}.viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}.viewer-head strong{font-size:.92rem}.tabs{display:flex;gap:4px;background:#f1f3f8;border-radius:9px;padding:3px}.tabs button{background:transparent;border-color:transparent;padding:6px 10px;color:var(--muted)}.tabs button[aria-pressed=true]{background:white;color:var(--blue);box-shadow:0 1px 4px #24325718}.stage{position:relative;height:clamp(400px,62vh,690px);background-color:#f7f9fd;background-image:radial-gradient(#9aaaca5a 1px,transparent 1px);background-size:18px 18px;overflow:hidden}.stage svg{width:100%;height:100%;display:block;touch-action:none;cursor:grab}.stage svg:active{cursor:grabbing}.tools{position:absolute;right:14px;top:14px;display:flex;gap:4px}.tools button{min-width:35px;padding:7px}.legend{display:flex;flex-wrap:wrap;align-items:center;gap:10px 19px;padding:13px 17px;border-top:1px solid var(--line);font-size:.83rem;color:var(--muted)}.legend span{display:inline-flex;align-items:center;gap:6px}.sw{height:11px;width:11px;border-radius:3px;display:inline-block}.stats{margin-left:auto}.sidebar{padding:0 17px 14px}.section{padding:15px 0;border-bottom:1px solid var(--line)}.section:last-child{border-bottom:0;padding-bottom:0}h2{font-size:.98rem;margin:0 0 11px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}label{display:grid;gap:5px;font-size:.82rem;color:var(--muted)}input,select{padding:7px 8px;border:1px solid #dbe3ef;border-radius:7px;background:#fff;width:100%;min-width:0;font-size:.86rem}input[type=checkbox]{width:auto}.pattern{display:grid;grid-template-columns:52px repeat(3,minmax(0,1fr));align-items:center;gap:6px;margin-bottom:6px}.pattern small{font-size:.77rem;color:var(--muted);text-align:center}.pattern strong{font-size:.82rem}.sub{font-size:.77rem;line-height:1.5;color:var(--muted);margin:7px 0 0}.stack{display:grid;grid-template-columns:1fr 90px;gap:8px}.presets{display:flex;flex-wrap:wrap;gap:5px}.presets button{font-size:.78rem;padding:6px 8px}.error{color:#9b2c3b;font-size:.82rem;margin:10px 0 0}.source{font-size:.78rem;color:var(--muted);margin:13px 0 0}.source a{color:var(--blue)}.layer-control{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}.layer-control select{width:auto}.viewer-actions{display:flex;gap:8px;align-items:center}
+.unit{display:grid;grid-template-columns:100px 1fr;gap:12px;align-items:center;margin-top:10px;padding:8px 10px;background:#f5f7fc;border:1px solid var(--line);border-radius:9px}.unit svg{display:block;width:100%;height:85px}.unit label{align-self:center}.unit select{margin-top:3px}.plan-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;margin-bottom:10px}.plan-head button{height:34px;border-color:#dbe3ef}.sequence-row{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:8px;align-items:end;margin-bottom:8px}.sequence-row button{height:34px;padding:0}.sequence-note{min-height:1.2em}
+.section-title{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px}.section-title h2{margin:0}.mode-row{display:flex;gap:5px;margin:8px 0 10px}.mode-row button,.section-title button{padding:5px 8px;font-size:.78rem}.mode-row button[aria-pressed=true],.section-title button[aria-pressed=true]{background:#e9eafe;color:#323ba8;border-color:#c8cdf8}.plan-head .mode-row{margin:0}.spaced{margin-top:8px}.locked{opacity:.59}fieldset{border:0;padding:0;margin:0;min-width:0}[hidden]{display:none!important}
+@media(max-width:950px){.workspace{grid-template-columns:minmax(0,1fr) 295px}.layout{padding:20px 14px}header{padding:0 14px}.sidebar{padding-inline:12px}.stage{height:470px}}
+@media(max-width:730px){.workspace{grid-template-columns:1fr}.stage{height:410px}.intro{align-items:start}.viewer-head{flex-wrap:wrap}.legend .stats{margin-left:0}.sidebar{padding-inline:16px}}
+:root{background:#fff;--ink:#202839;--muted:#586477;--line:#e6eaf0;--blue:#3c438e}
+header{height:62px}.mark{background:#333b79}.primary:hover{background:#303773}
+.layout{max-width:1500px;padding-top:28px}.intro{margin-bottom:22px}.intro p{color:#5d6879}
+.workspace{grid-template-columns:minmax(0,1fr) 352px;gap:20px;align-items:start}
+.panel{border-color:#e2e7ee;border-radius:13px;box-shadow:0 2px 4px #2a3b5806}
+.stage{background-color:#fcfdff;background-image:radial-gradient(#dce3ed 1px,transparent 1px);background-size:20px 20px}
+.viewer-head{border-color:#edf0f4}.tabs{background:#f6f7fa}.legend{background:#fff;border-color:#edf0f4}
+.sidebar{padding:0;overflow:hidden}
+.contents{background:#fff;border-bottom:1px solid #e9edf3;padding:12px 15px}
+.contents [role=tablist]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:3px;border:1px solid #edf0f5;background:#f6f7fa;border-radius:9px}
+.contents button{border:1px solid transparent;text-align:center;padding:7px 2px;border-radius:6px;color:#515e76;background:transparent;font-size:.79rem;line-height:1.25;white-space:nowrap}
+.contents button:hover{color:var(--blue)}
+.contents button[aria-selected=true]{background:#fff;color:var(--blue);border-color:#e7e9f4;box-shadow:0 1px 4px #24325714}
+.tab-body{max-height:max(430px,calc(100dvh - 250px));overflow:auto;scrollbar-width:thin;scrollbar-color:#d8deea transparent}
+.sidebar .section{padding:16px 16px 15px;border-bottom:1px solid #edf0f4}.sidebar .section:last-child{border-bottom:0}
+.sidebar>.error{margin:0;padding:10px 16px 12px;background:#fff6f7;border-top:1px solid #f1dfe2}
+.style-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 12px}.style-tabs button{padding:6px 4px;color:#56647a}.style-tabs button[aria-pressed=true]{background:#f1f1fb;border-color:#daddf4;color:var(--blue)}
+.style-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.style-row select{padding:7px 8px}
+.unit-card{margin-top:12px;border:1px solid #e9edf3;border-radius:9px;background:linear-gradient(145deg,#fff,#f8f9fc);padding:9px 11px;display:grid;grid-template-columns:1fr 112px;gap:8px;align-items:center}.unit-card span{font-size:.81rem;font-weight:650;color:#445168}.unit-card svg{display:block;width:100%;height:78px}
+.section-title .presets{gap:4px}.section-title button{padding:5px 7px}
+@media(max-width:950px){.workspace{grid-template-columns:minmax(0,1fr) 298px;gap:13px}.sidebar .section{padding-inline:12px}.contents{padding-inline:11px}}
+@media(max-width:730px){.workspace{grid-template-columns:1fr}.tab-body{max-height:none;overflow:visible}}
+.layout{max-width:none;padding:0}.intro{display:none}.workspace{display:block;position:relative;min-height:calc(100dvh - 62px)}
+.viewer{border:0;border-radius:0;box-shadow:none}.viewer-head{position:absolute;left:18px;top:16px;z-index:2;padding:7px 9px 7px 12px;border:1px solid #e6ebf1;border-radius:10px;background:#fff;box-shadow:0 3px 14px #25365e0b}
+.viewer-head>strong{margin-right:8px}.stage{height:calc(100dvh - 62px);min-height:490px}
+.stage svg{width:calc(100% - 326px)}.tools{left:18px;right:auto;top:auto;bottom:64px}
+.legend{position:absolute;left:18px;bottom:15px;z-index:1;max-width:calc(100% - 36px);padding:9px 12px;border:1px solid #e6ebf1;border-radius:9px;background:#fff;box-shadow:0 3px 14px #25365e0b}
+.sidebar{position:absolute;z-index:3;right:17px;top:16px;width:min(330px,calc(100% - 34px));max-height:calc(100% - 30px);box-shadow:0 12px 32px #20345715}
+.contents{padding-top:8px}.panel-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;padding-left:4px;font-size:.83rem;color:#445168}.panel-heading button{padding:4px 8px;font-size:.75rem;background:#f8f9fc}
+.tab-body{max-height:calc(100dvh - 185px)}.sidebar[data-collapsed=true]{width:auto}.sidebar[data-collapsed=true] .panel-heading{margin-bottom:0}
+.sidebar[data-collapsed=true] [role=tablist],.sidebar[data-collapsed=true] .tab-body,.sidebar[data-collapsed=true] .error{display:none!important}
+body:has(.sidebar[data-collapsed=true]) .stage svg{width:100%}
+.source{margin:0;padding:9px 18px;border-top:1px solid var(--line);font-size:.75rem}
+@media(max-width:950px){.sidebar{width:min(295px,calc(100% - 34px))}.stage svg{width:calc(100% - 278px)}}
+@media(max-width:730px){
+  .viewer-head{left:10px;top:10px}.viewer-head>strong{display:none}.viewer-actions{gap:5px}
+  .sidebar{top:57px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 133px)}
+  .tab-body{max-height:calc(100dvh - 230px);min-height:0;overflow:auto}
+  .stage svg{width:100%}.legend{left:10px;bottom:10px;gap:6px 12px;max-width:calc(100% - 20px)}
+  .tools{left:10px;bottom:76px}
+}
+</style>
+<header><div class="brand"><span class="mark" aria-hidden="true">⬡</span><div>晶粒构型实验台<small>GRAIN ATELIER</small></div></div><nav aria-label="导出"><button id="csv">下载 CSV</button><button id="svg" class="primary">下载 SVG</button></nav></header>
+<main class="layout">
+<div class="intro"><div><h1>仿生晶粒结构</h1><p>编排晶胞取向、样式循环与层间错位。</p></div></div>
+<div class="workspace">
+<section class="panel viewer" aria-label="结构预览">
+<div class="viewer-head"><strong>结构预览</strong><div class="viewer-actions"><label class="layer-control">查看<select id="layer"></select></label><div class="tabs"><button type="button" id="stacked" aria-pressed="true">立体</button><button type="button" id="single" aria-pressed="false">俯视</button></div></div></div>
+<div class="stage"><svg id="canvas" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="六边形晶粒结构"></svg><div class="tools"><button id="minus" aria-label="缩小">−</button><button id="plus" aria-label="放大">+</button><button id="fit">复位</button></div></div>
+<div class="legend"><span><i class="sw" style="background:#7463bc"></i>30°</span><span><i class="sw" style="background:#368f8b"></i>90°</span><span><i class="sw" style="background:#d18162"></i>150°</span><span id="stats" class="stats" aria-live="polite"></span></div>
+</section>
+<form class="panel sidebar" id="controls" data-collapsed="false">
+<div class="contents"><div class="panel-heading"><strong>参数</strong><button type="button" id="togglePanel" aria-expanded="true">收起</button></div><div role="tablist" aria-label="参数目录"><button type="button" role="tab" id="tab-geometry" aria-controls="panel-geometry" aria-selected="true">尺寸与单元</button><button type="button" role="tab" id="tab-intralayer" aria-controls="panel-intralayer" aria-selected="false" tabindex="-1">层内铺排</button><button type="button" role="tab" id="tab-interlayer" aria-controls="panel-interlayer" aria-selected="false" tabindex="-1">层间堆叠</button></div></div>
+<div class="tab-body" id="panel-geometry" role="tabpanel" aria-labelledby="tab-geometry">
+<section class="section" id="geometry"><h2>样品尺寸</h2><div class="grid"><label>长 / mm<input id="width" type="number" min="1" max="250" step="any" value="35" required></label><label>宽 / mm<input id="height" type="number" min="1" max="250" step="any" value="24" required></label><label>边长 / mm<input id="edge" type="number" min=".25" max="50" step="any" value="2" required></label></div></section>
+<section class="section"><h2>晶胞样式</h2><div class="style-tabs" role="group" aria-label="晶胞样式目录"><button type="button" data-style="1" aria-pressed="true">样式 1</button><button type="button" data-style="2" aria-pressed="false">样式 2</button><button type="button" data-style="3" aria-pressed="false">样式 3</button></div><div id="patterns"></div><div class="unit-card"><span id="unitLabel">样式 1 预览</span><svg id="unit" role="img" aria-label="单个三晶胞样式"></svg></div></section>
+</div>
+<div class="tab-body" id="panel-intralayer" role="tabpanel" aria-labelledby="tab-intralayer" hidden>
+<section class="section"><h2>层内铺排</h2><label>总层数<input id="totalLayers" type="number" min="1" max="24" step="1" value="3" required></label><div class="mode-row" role="group" aria-label="层内序列模式"><button type="button" id="innerDirect" aria-pressed="true">不循环</button><button type="button" id="innerCycle" aria-pressed="false">循环</button></div><label id="innerCountLabel" hidden>循环序列数<input id="innerCount" type="number" min="1" max="24" value="3" required disabled></label><button type="button" id="addSequence" class="spaced">＋ 添加序列</button><div id="sequences" class="spaced"></div><p id="sequenceNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">每条序列填样式 1、2、3，例如 1 3 2。每层按对应序列铺满。</p></section>
+</div>
+<div class="tab-body" id="panel-interlayer" role="tabpanel" aria-labelledby="tab-interlayer" hidden>
+<section class="section"><div class="section-title"><h2>层间堆叠</h2><div class="presets" role="group" aria-label="堆叠预设"><button type="button" data-preset="ααα" aria-pressed="false">ααα</button><button type="button" data-preset="αβγ" aria-pressed="false">αβγ</button><button type="button" data-preset="" aria-pressed="true">自定义</button></div></div><fieldset id="stackControls"><div class="mode-row" role="group" aria-label="层间序列模式"><button type="button" id="stackDirect" aria-pressed="true">不循环</button><button type="button" id="stackCycle" aria-pressed="false">循环</button></div><label id="stackCountLabel" hidden>循环序列数<input id="stackCount" type="number" min="1" max="24" value="3" required disabled></label><label class="spaced">堆叠序列<input id="stackOrder" value="α β γ" maxlength="95" spellcheck="false" required></label></fieldset><p id="stackNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">只可填写 α、β、γ，例如 ααβ 或 α β γ。可用空格、逗号分隔。相同字母使用相同偏移，α 为基准。</p></section>
+</div>
+<p id="error" class="error" role="alert" hidden></p>
+</form>
+</div><p class="source">结构参考 <a href="https://doi.org/10.1038/s41467-024-53850-w" target="_blank" rel="noopener">Yu 等 · Nature Communications (2024)</a></p>
+</main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const palette={
+  30:{fill:"#d9cdf6",line:"#6a549c",wall:"#9982ce",shade:"#665299"},
+  90:{fill:"#b5e4dc",line:"#286e70",wall:"#67b2a8",shade:"#337f80"},
+  150:{fill:"#f7cdb8",line:"#a25445",wall:"#df977a",shade:"#ad624e"},
+};
+const schemes={1:[30,90,150],2:[90,150,30],3:[150,30,90]};
+const keys=Object.keys(schemes);
+const slots=["a","b","c"];
+const defaultSequences=["1 2 3","2 3 1","3 1 2"];
+const entries={direct:[...defaultSequences],cycle:[...defaultSequences]};
+const stacks={direct:"α β γ",cycle:"α β γ"};
+const viewer=$("canvas");
+const root3=Math.sqrt(3);
+const round=n=>+n.toFixed(5);
+let model, mode="stacked", zoom=1, pan=[0,0], drag=null;
+let innerMode="direct",stackMode="direct",preset="",selectedStyle="1";
+
+$("patterns").innerHTML=keys.map(key=>'<div class="style-row" id="style-row-'+key+'" '+(key==="1"?"":"hidden")+'>'+
+  schemes[key].map((angle,i)=>'<label>位置 '+slots[i]+'<select id="style-'+key+'-'+i+'" aria-label="样式 '+key+' 位置 '+slots[i]+'">'+Object.keys(palette).map(option=>'<option value="'+option+'" '+(String(angle)===option?'selected':'')+'>'+option+'°</option>').join('')+'</select></label>').join('')+'</div>').join('');
+
+function showSequenceRows(){
+  const list=$("sequences");
+  list.replaceChildren();
+  const values=entries[innerMode];
+  const cycleCount=+$("innerCount").value;
+  const count=innerMode==="cycle"?Math.min(24,Math.max(0,Math.floor(cycleCount))):values.length;
+  Array.from({length:count},(_,i)=>values[i]??defaultSequences[i%defaultSequences.length]).forEach((value,index)=>{
+    const row=document.createElement("div");
+    row.className="sequence-row";
+    row.innerHTML='<label>序列 '+(index+1)+'<input maxlength="45" spellcheck="false" required></label><button type="button">×</button>';
+    const input=row.querySelector("input"),remove=row.querySelector("button");
+    input.value=value;
+    input.addEventListener("input",()=>{values[index]=input.value});
+    remove.hidden=innerMode==="cycle";
+    remove.disabled=values.length===1;
+    remove.setAttribute("aria-label","删除序列 "+(index+1));
+    remove.onclick=()=>{values.splice(index,1);showSequenceRows();update()};
+    list.append(row);
+  });
+}
+
+const parseStack=value=>Array.from(value.toLowerCase().replace(/[\s,，、→-]/g,""));
+function getStack(total){
+  if(preset) return Array.from({length:total},(_,i)=>Array.from(preset)[i%3]);
+  const symbols=parseStack($("stackOrder").value);
+  if(!symbols.length||symbols.some(symbol=>!"αβγ".includes(symbol))) throw Error("堆叠序列只能填写 α、β、γ，可用空格或逗号分隔。");
+  const expected=stackMode==="cycle"?+$("stackCount").value:total;
+  if(symbols.length!==expected) throw Error("层间堆叠需要填写 "+expected+" 个字母，目前为 "+symbols.length+" 个。");
+  return Array.from({length:total},(_,i)=>symbols[i%symbols.length]);
+}
+
+function getOffset(letter,edge){
+  if(letter==="α") return [0,0];
+  if(letter==="β") return [root3*edge/2,edge/2];
+  return [-root3*edge/2,edge/2];
+}
+
+function polygon(x,y,r){
+  return Array.from({length:6},(_,i)=>[x+r*Math.cos((60*i-90)*Math.PI/180),y+r*Math.sin((60*i-90)*Math.PI/180)]);
+}
+
+function clipPolygon(points,width,height){
+  // Clip against the four edges of the sample, retaining partial hexagons.
+  for(const [axis,bound,sign] of [[0,0,1],[0,width,-1],[1,0,1],[1,height,-1]]){
+    const clipped=[];
+    for(let i=0;i<points.length;i++){
+      const a=points[i],b=points[(i+1)%points.length];
+      const insideA=(a[axis]-bound)*sign>=0,insideB=(b[axis]-bound)*sign>=0;
+      if(insideA) clipped.push(a);
+      if(insideA!==insideB){
+        const t=(bound-a[axis])/(b[axis]-a[axis]);
+        const point=[a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])];
+        point[axis]=bound;
+        clipped.push(point);
+      }
+    }
+    points=clipped;
+  }
+  return points;
+}
+
+function build(){
+  const width=+$("width").value,height=+$("height").value,edge=+$("edge").value;
+  const total=+$("totalLayers").value;
+  const count=innerMode==="cycle"?+$("innerCount").value:entries.direct.length;
+  if(count>total) throw Error("层内序列数不能超过总层数。");
+  if(!$("controls").checkValidity()) throw Error("请输入有效的尺寸、总层数与序列。");
+  const sequences=Array.from($("sequences").querySelectorAll("input"),input=>input.value.replace(/[\s,，、→-]/g,""));
+  if(sequences.some(sequence=>!/^[123]+$/.test(sequence))) throw Error("每条序列只能使用样式 1、2、3。");
+  const layers=Array.from({length:total},(_,i)=>innerMode==="cycle"?i%sequences.length:Math.min(i,sequences.length-1));
+  const layouts=getStack(total);
+  const pitch=root3*edge;
+  // A three-cell basis on the triangular lattice. These bases tile without overlap.
+  const basis=[[0,0],[1,0],[0,1]];
+  const spanX=Math.ceil(width/pitch)+5,spanY=Math.ceil(height/(1.5*edge))+5;
+  if(spanX*spanY*layers.length>42000) throw Error("晶胞数量过多，请增大边长或减少层数。");
+  const groups=[];
+  // Three cosets cover the honeycomb; halo anchors supply clipped boundary cells.
+  for(let row=-3;row<spanY;row++){
+    for(let col=-3-Math.floor(row/2);col<spanX-Math.floor(row/2);col++){
+      if((col-row)%3!==0) continue;
+      const points=basis.map(([dq,dr])=>[pitch*(col+dq+(row+dr)/2)+pitch/2,edge*(1+1.5*(row+dr))]);
+      if(points.every(([x,y])=>x+pitch<0||x-pitch>width||y+2*edge<0||y-2*edge>height)) continue;
+      groups.push(points);
+    }
+  }
+  const grids=layers.map((sequenceIndex,layer)=>{
+    const sequence=sequences[sequenceIndex];
+    const letter=layouts[layer];
+    const [dx,dy]=getOffset(letter,edge);
+    const clippedGroups=groups.map(points=>points.map(([x,y],slot)=>{
+      x+=dx;y+=dy;
+      return {x,y,slot,points:clipPolygon(polygon(x,y,edge),width,height)};
+    }).filter(c=>Math.abs(c.points.reduce((area,[x,y],i)=>{
+      const next=c.points[(i+1)%c.points.length];
+      return area+x*next[1]-y*next[0];
+    },0))>1e-8)).filter(cells=>cells.length);
+    return clippedGroups.flatMap((cells,group)=>{
+      const style=sequence[group%sequence.length];
+      return cells.map(c=>({...c,style,group:group+1,cycle:Math.floor(group/sequence.length)+1,slot:slots[c.slot],angle:+$("style-"+style+"-"+c.slot).value,layer:layer+1,letter,sequence:sequenceIndex+1}));
+    });
+  });
+  return {width,height,edge,layers,layouts,grids};
+}
+
+const coords=points=>points.map(p=>p.map(round).join(",")).join(" ");
+
+function fillDefs(prefix,spacing){
+  return Object.entries(palette).map(([angle,color])=>'<pattern id="'+prefix+angle+'" width="'+spacing+'" height="'+spacing+'" patternUnits="userSpaceOnUse" patternTransform="rotate('+(-Number(angle))+')"><rect width="'+spacing+'" height="'+spacing+'" fill="'+color.fill+'"/><path d="M 0 0 H '+spacing+'" stroke="'+color.line+'" stroke-width="'+round(spacing*.14)+'" opacity=".65"/></pattern>').join("");
+}
+
+function face(c,prefix,stroke){
+  return '<polygon points="'+coords(c.points)+'" fill="url(#'+prefix+c.angle+')" stroke="'+palette[c.angle].line+'" stroke-linejoin="round" stroke-width="'+stroke+'"><title>样式 '+c.style+' · 位置 '+c.slot+' · '+c.angle+'°</title></polygon>';
+}
+
+function showUnit(){
+  const style=selectedStyle;
+  const centers=[[0,0],[root3,0],[root3/2,1.5]];
+  $("unitLabel").textContent="样式 "+style+" 预览";
+  $("unit").setAttribute("viewBox","-1.05 -1.12 3.84 3.78");
+  $("unit").innerHTML='<defs>'+fillDefs("mini-",.23)+'</defs>'+centers.map(([x,y],i)=>
+    face({points:polygon(x,y,1),angle:+$("style-"+style+"-"+i).value,style,slot:slots[i]},"mini-",.035)+
+    '<text x="'+x+'" y="'+(y+.1)+'" text-anchor="middle" font-weight="700" font-size=".3" paint-order="stroke" stroke="#f8fbff" stroke-width=".045" fill="#172741">'+slots[i]+'</text>'
+  ).join("");
+}
+
+function render(){
+  if(!model) return;
+  const {width,height,edge,grids,layers}=model;
+  const current=+$("layer").value||0;
+  const solid=mode==="stacked",thickness=edge*.49,step=thickness;
+  const matrix=solid?[.91,.24,-.41,.63]:[1,0,0,1];
+  const project=([x,y],z=0)=>[matrix[0]*x+matrix[2]*y,matrix[1]*x+matrix[3]*y+z];
+  const corners=[[0,0],[width,0],[width,height],[0,height]];
+  const plane=corners.map(p=>project(p));
+  const margin=Math.max(width,height)*.062;
+  const minX=Math.min(...plane.map(p=>p[0]))-margin,minY=-margin;
+  const w=Math.max(...plane.map(p=>p[0]))-minX+margin;
+  const h=Math.max(...plane.map(p=>p[1]))+2*margin+(solid?grids.length*step:0);
+  viewer.setAttribute("viewBox",[minX+(w-w/zoom)/2+pan[0],minY+(h-h/zoom)/2+pan[1],w/zoom,h/zoom].join(" "));
+  const indices=solid?grids.map((_,i)=>i).reverse():[current];
+  const stroke=round(edge*.024);
+  const shadow=solid?'<defs><filter id="depth-shadow" x="-30%" y="-40%" width="160%" height="180%"><feGaussianBlur stdDeviation="'+round(edge*.55)+'"/></filter></defs><polygon points="'+coords(corners.map(p=>project(p,grids.length*step+edge*.3)))+'" fill="#516584" opacity=".20" filter="url(#depth-shadow)"/>':"";
+  viewer.innerHTML='<defs>'+fillDefs("face-",round(edge*.21))+'</defs>'+shadow+
+    indices.map(i=>{
+      const z=solid?i*step:0;
+      const cells=grids[i];
+      // Coplanar top faces are followed by the next layer. Only forward-facing walls are visible.
+      const walls=solid?cells.map(c=>c.points.map((a,k)=>{
+        const b=c.points[(k+1)%c.points.length];
+        const u=project(a,z),v=project(b,z);
+        if(v[0]>=u[0]-1e-8) return "";
+        const color=palette[c.angle];
+        return '<polygon points="'+coords([u,v,project(b,z+thickness),project(a,z+thickness)])+'" fill="'+(v[1]>u[1]?color.wall:color.shade)+'" stroke="'+color.shade+'" stroke-width="'+stroke+'"/>';
+      }).join("")).join(""):"";
+      return '<g opacity="'+(solid&&i<current?.19:1)+'">'+walls+
+        '<g transform="matrix('+matrix.join(" ")+' 0 '+z+')">'+cells.map(c=>face(c,"face-",stroke)).join("")+'</g></g>';
+    }).join("");
+  $("stats").textContent="第 "+(current+1)+" / "+grids.length+" 层 · 序列 "+(layers[current]+1)+" · 堆叠 "+model.layouts[current]+" · "+grids[current].length+" 晶胞";
+}
+
+function update(){
+  const total=+$("totalLayers").value;
+  const count=innerMode==="cycle"?+$("innerCount").value:entries.direct.length;
+  $("addSequence").disabled=!Number.isInteger(total)||total>24||count>=total;
+  $("sequenceNote").textContent=count+" 条序列 / "+(total||"—")+" 层。"+(innerMode==="cycle"?"按序循环，到总层数即停止。":"逐层使用，剩余层沿用最后一条。");
+  $("stackNote").textContent=preset?"已锁定为 "+preset+"，按预设铺到总层数。":stackMode==="cycle"?"填写 "+(+$("stackCount").value||"—")+" 个字母，循环至总层数。":"填写 "+(total||"—")+" 个字母，每层一个。";
+  try{
+    showUnit();
+    const next=build();
+    const old=+$("layer").value||0;
+    model=next;
+    $("layer").innerHTML=model.layers.map((sequence,i)=>'<option value="'+i+'">第 '+(i+1)+' 层 · '+model.layouts[i]+'</option>').join("");
+    $("layer").value=Math.min(old,model.layers.length-1);
+    $("error").hidden=true;
+    $("svg").disabled=$("csv").disabled=false;
+    render();
+  }catch(err){
+    $("error").hidden=false;
+    $("error").textContent=err.message;
+    $("svg").disabled=$("csv").disabled=true;
+  }
+}
+
+function changeMode(next){
+  mode=next;
+  $("single").setAttribute("aria-pressed",mode==="single");
+  $("stacked").setAttribute("aria-pressed",mode==="stacked");
+  zoom=1;pan=[0,0];render();
+}
+
+function save(filename,data,type){
+  const link=document.createElement("a");
+  const url=URL.createObjectURL(new Blob([data],{type}));
+  link.href=url;link.download=filename;link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+$("controls").addEventListener("submit",e=>e.preventDefault());
+$("controls").addEventListener("input",update);
+function togglePanel(collapsed){
+  $("controls").dataset.collapsed=String(collapsed);
+  $("togglePanel").setAttribute("aria-expanded",!collapsed);
+  $("togglePanel").textContent=collapsed?"展开":"收起";
+}
+$("togglePanel").onclick=()=>togglePanel($("controls").dataset.collapsed!=="true");
+togglePanel(matchMedia("(max-width: 730px)").matches);
+document.querySelectorAll("[data-style]").forEach(button=>button.onclick=()=>{
+  selectedStyle=button.dataset.style;
+  keys.forEach(key=>$("style-row-"+key).hidden=key!==selectedStyle);
+  document.querySelectorAll("[data-style]").forEach(item=>item.setAttribute("aria-pressed",item===button));
+  showUnit();
+});
+const directory=Array.from(document.querySelectorAll(".contents [role=tab]"));
+function switchPanel(active){
+  for(const tab of directory){
+    const selected=tab===active;
+    tab.setAttribute("aria-selected",selected);
+    tab.tabIndex=selected?0:-1;
+    $(tab.getAttribute("aria-controls")).hidden=!selected;
+  }
+}
+directory.forEach((tab,index)=>{
+  tab.onclick=()=>switchPanel(tab);
+  tab.addEventListener("keydown",event=>{
+    const next={ArrowLeft:(index+directory.length-1)%directory.length,ArrowRight:(index+1)%directory.length,Home:0,End:directory.length-1}[event.key];
+    if(next===undefined)return;
+    event.preventDefault();
+    switchPanel(directory[next]);
+    directory[next].focus({preventScroll:true});
+  });
+});
+$("addSequence").onclick=()=>{
+  if(entries.direct.length>=+$("totalLayers").value)return;
+  entries.direct.push("1 2 3");
+  showSequenceRows();
+  update();
+  $("sequences").lastElementChild.querySelector("input").focus();
+};
+function selectInner(next){
+  innerMode=next;
+  const cycling=next==="cycle";
+  $("innerDirect").setAttribute("aria-pressed",!cycling);
+  $("innerCycle").setAttribute("aria-pressed",cycling);
+  $("innerCountLabel").hidden=$("innerCount").disabled=!cycling;
+  $("addSequence").hidden=cycling;
+  showSequenceRows();
+  update();
+}
+function selectStack(next){
+  stacks[stackMode]=$("stackOrder").value;
+  stackMode=next;
+  const cycling=next==="cycle";
+  $("stackDirect").setAttribute("aria-pressed",!cycling);
+  $("stackCycle").setAttribute("aria-pressed",cycling);
+  $("stackCountLabel").hidden=$("stackCount").disabled=!cycling;
+  $("stackOrder").value=stacks[next];
+  update();
+}
+$("innerDirect").onclick=()=>selectInner("direct");
+$("innerCycle").onclick=()=>selectInner("cycle");
+$("innerCount").addEventListener("input",showSequenceRows);
+$("stackDirect").onclick=()=>selectStack("direct");
+$("stackCycle").onclick=()=>selectStack("cycle");
+document.querySelectorAll("[data-preset]").forEach(button=>button.onclick=()=>{
+  preset=button.dataset.preset;
+  $("stackControls").disabled=Boolean(preset);
+  $("stackControls").classList.toggle("locked",Boolean(preset));
+  document.querySelectorAll("[data-preset]").forEach(item=>item.setAttribute("aria-pressed",item===button));
+  update();
+});
+$("single").onclick=()=>changeMode("single");
+$("stacked").onclick=()=>changeMode("stacked");
+$("layer").onchange=render;
+function changeZoom(factor){zoom=Math.max(.7,Math.min(5,zoom*factor));render()}
+$("plus").onclick=()=>changeZoom(1.25);
+$("minus").onclick=()=>changeZoom(.8);
+$("fit").onclick=()=>{zoom=1;pan=[0,0];render()};
+viewer.addEventListener("wheel",e=>{e.preventDefault();changeZoom(e.deltaY<0?1.1:1/1.1)},{passive:false});
+viewer.addEventListener("pointerdown",e=>{
+  if(e.button!==0)return;
+  const inverse=viewer.getScreenCTM()?.inverse();
+  if(!inverse)return;
+  drag={x:e.clientX,y:e.clientY,inverse};
+  viewer.setPointerCapture(e.pointerId);
+});
+viewer.addEventListener("pointermove",e=>{
+  if(!drag)return;
+  pan[0]-=(e.clientX-drag.x)*drag.inverse.a;pan[1]-=(e.clientY-drag.y)*drag.inverse.d;
+  drag.x=e.clientX;drag.y=e.clientY;render();
+});
+viewer.addEventListener("lostpointercapture",()=>drag=null);
+$("svg").onclick=()=>{
+  const snapshot=viewer.cloneNode(true);
+  const vb=viewer.viewBox.baseVal;
+  snapshot.setAttribute("width","1400");
+  snapshot.setAttribute("height",String(Math.round(1400*vb.height/vb.width)));
+  save("grain-preview.svg",new XMLSerializer().serializeToString(snapshot),"image/svg+xml;charset=utf-8");
+};
+$("csv").onclick=()=>{
+  const rows=model.grids.flat().map(c=>[c.layer,c.sequence,c.letter,c.cycle,c.group,c.style,c.slot,c.angle,round(c.x),round(c.y),model.edge,'"'+coords(c.points)+'"'].join(","));
+  save("grain-cells.csv","\ufefflayer,sequence,layout,cycle,group,style,slot,angle_deg,x_mm,y_mm,edge_mm,clipped_outline_mm\r\n"+rows.join("\r\n"),"text/csv;charset=utf-8");
+};
+showSequenceRows();
+update();
+</script>
+</html>
