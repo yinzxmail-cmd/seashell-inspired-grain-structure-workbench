@@ -95,7 +95,7 @@ test("strands stop short of a shared boundary and cannot touch end to end", asyn
     Math.max(...bottom.map(track => track.start[1])), 0.06);
 });
 
-test("the rendered layers have a positive vertical gap between strand meshes", async () => {
+test("adjacent strand meshes meet at the layer boundary", async () => {
   const { planPrint } = await planner;
   const { addPrintLayers, printShadowMaterial } = await import("../src/print-mesh.mjs");
   const { Group, LineBasicMaterial, MeshBasicMaterial } = await import("three");
@@ -108,7 +108,7 @@ test("the rendered layers have a positive vertical gap between strand meshes", a
   const [top, bottom] = group.children.map(layer => layer.children[0]?.geometry);
   top.computeBoundingBox();
   bottom.computeBoundingBox();
-  close(top.boundingBox.min.y - bottom.boundingBox.max.y, 0.06);
+  close(top.boundingBox.min.y, bottom.boundingBox.max.y);
 });
 
 test("layer height is exactly half the strand width at every cell edge length", async () => {
@@ -118,6 +118,7 @@ test("layer height is exactly half the strand width at every cell edge length", 
   for (const width of [0.2, 0.6, 1.2]) {
     const plan = planPrint(model, width);
     close(plan.height, width / 2);
-    close(plan.stackHeight, 3 * (width / 2) + 2 * width * 0.1);
+    close(plan.pitch, plan.height);
+    close(plan.stackHeight, 3 * plan.height);
   }
 });

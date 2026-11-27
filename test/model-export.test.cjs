@@ -4,9 +4,9 @@ const { test } = require("node:test");
 const exporters = import("../src/model-export.mjs");
 const model = { width: 4, height: 3 };
 const track = { startFace: [[1, 0.8], [1, 1.4]], endFace: [[3, 0.8], [3, 1.4]] };
-const plan = { width: 0.6, height: 0.3, pitch: 0.36, layers: [{ tracks: [track] }, { tracks: [track] }] };
+const plan = { width: 0.6, height: 0.3, pitch: 0.3, layers: [{ tracks: [track] }, { tracks: [track] }] };
 
-test("binary STL has millimeter-scale closed strands with a real gap between layers", async () => {
+test("binary STL has millimeter-scale closed strands with touching layers", async () => {
   const { exportSTL } = await exporters;
   const { STLLoader } = await import("three/addons/loaders/STLLoader.js");
   const data = await exportSTL(model, plan).arrayBuffer();
@@ -17,10 +17,11 @@ test("binary STL has millimeter-scale closed strands with a real gap between lay
   const { min, max } = geometry.boundingBox;
   assert.ok(Math.abs(max.x - min.x - 2) < 1e-6);
   assert.ok(Math.abs(max.y - min.y - 0.6) < 1e-6);
-  assert.ok(Math.abs(max.z - 0.66) < 1e-6);
+  assert.ok(Math.abs(max.z - 0.6) < 1e-6);
   assert.equal(min.z, 0);
   const z = geometry.getAttribute("position").array.filter((_, i) => i % 3 === 2);
-  assert.ok(z.every(height => height <= 0.300001 || height >= 0.359999));
+  assert.ok(Math.abs(Math.min(...z.slice(0, z.length / 2)) - 0.3) < 1e-6);
+  assert.ok(Math.abs(Math.max(...z.slice(z.length / 2)) - 0.3) < 1e-6);
 });
 
 test("3MF package contains a millimeter mesh with watertight outward-facing shells", async () => {
@@ -39,8 +40,8 @@ test("3MF package contains a millimeter mesh with watertight outward-facing shel
   const volumes = [0, 0];
   for (const [a, b, c] of triangles) {
     const [p, q, r] = [vertices[a], vertices[b], vertices[c]];
-    const layer = p[2] > 0.33 ? 1 : 0;
-    assert.ok([q, r].every(vertex => (vertex[2] > 0.33 ? 1 : 0) === layer));
+    const layer = a < vertices.length / 2 ? 1 : 0;
+    assert.ok([b, c].every(index => (index < vertices.length / 2 ? 1 : 0) === layer));
     volumes[layer] += (p[0] * (q[1] * r[2] - q[2] * r[1]) +
       p[1] * (q[2] * r[0] - q[0] * r[2]) + p[2] * (q[0] * r[1] - q[1] * r[0])) / 6;
     for (const [start, end] of [[a, b], [b, c], [c, a]]) {

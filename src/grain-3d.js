@@ -1,7 +1,7 @@
 import {
-  AmbientLight, BufferGeometry, Color, DataTexture, DirectionalLight, Float32BufferAttribute,
+  AmbientLight, BufferGeometry, Color, DataTexture, DirectionalLight, DoubleSide, Float32BufferAttribute,
   Group, LineBasicMaterial, LinearFilter, LinearMipmapLinearFilter, Mesh,
-  MeshLambertMaterial, MeshPhongMaterial, PerspectiveCamera, Raycaster,
+  MeshBasicMaterial, MeshLambertMaterial, MeshPhongMaterial, PerspectiveCamera, Raycaster,
   RepeatWrapping, Scene, Vector2, Vector3, WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -12,6 +12,7 @@ import { pickCell } from "./cell-picking.mjs";
 import { addPrintLayers, printShadowMaterial } from "./print-mesh.mjs";
 export { planPrint } from "./print-paths.mjs";
 export { exportSTL, export3MF } from "./model-export.mjs";
+export { exportGcode } from "./gcode.mjs";
 
 const THICKNESS = 0.49;
 // A small display gap keeps touching layer faces legible from oblique views.
@@ -136,8 +137,7 @@ export function createPreview(host, palette, onStatus, onCellPicked) {
 
   function dropOutline() {
     if (outline) {
-      outline.removeFromParent();
-      outline.geometry.dispose();
+      disposeModel(outline);
       outline = null;
     }
     outlinedCell = null;
@@ -158,9 +158,25 @@ export function createPreview(host, palette, onStatus, onCellPicked) {
           (nextX - builtModel.width / 2) * scale, y, (nextZ - builtModel.height / 2) * scale);
       }
     }
-    const geometry = new LineSegmentsGeometry().setPositions(positions);
-    outline = new LineSegments2(geometry, materials.outline[0]);
-    outline.renderOrder = 2;
+    outline = new Group();
+    const line = new LineSegments2(new LineSegmentsGeometry().setPositions(positions), materials.outline[0]);
+    line.renderOrder = 3;
+    outline.add(line);
+    if (cells.length === 1) {
+      const { points, layer } = cells[0];
+      const y = (top - (layer - 1) * pitch) * scale;
+      const triangles = [];
+      for (let i = 1; i < points.length - 1; i++) {
+        for (const [x, z] of [points[0], points[i], points[i + 1]]) {
+          triangles.push((x - builtModel.width / 2) * scale, y, (z - builtModel.height / 2) * scale);
+        }
+      }
+      const fill = new BufferGeometry();
+      fill.setAttribute("position", new Float32BufferAttribute(triangles, 3));
+      const tint = new Mesh(fill, materials.outline[1]);
+      tint.renderOrder = 2;
+      outline.add(tint);
+    }
     scene.add(outline);
     outlinedCell = selectedCell;
   }
@@ -303,16 +319,19 @@ export function createPreview(host, palette, onStatus, onCellPicked) {
           new MeshLambertMaterial({ map, vertexColors: true, ...fade }),
         ],
         road: [
-          new MeshPhongMaterial({ color: 0xff9a12, specular: 0xa37443, shininess: 30 }),
-          new MeshPhongMaterial({ color: 0xff9a12, specular: 0xa37443, shininess: 30, ...fade }),
+          new MeshPhongMaterial({ color: 0xdf8b49, specular: 0xa37443, shininess: 30 }),
+          new MeshPhongMaterial({ color: 0xdf8b49, specular: 0xa37443, shininess: 30, ...fade }),
         ],
         gap: [
           new LineBasicMaterial({ color: 0x34383e, transparent: true, opacity: 0.83, depthWrite: false }),
           new LineBasicMaterial({ color: 0x34383e, ...fade, opacity: 0.1 }),
         ],
         shadow: [printShadowMaterial()],
-        outline: [new LineMaterial({ color: 0x0055d9, linewidth: 3, depthTest: false, depthWrite: false,
-          transparent: true })],
+        outline: [
+          new LineMaterial({ color: 0x24645e, linewidth: 3, depthTest: false, depthWrite: false, transparent: true }),
+          new MeshBasicMaterial({ color: 0x34736c, opacity: 0.4, side: DoubleSide, transparent: true,
+            depthTest: false, depthWrite: false }),
+        ],
       };
     }
     const next = new Group();

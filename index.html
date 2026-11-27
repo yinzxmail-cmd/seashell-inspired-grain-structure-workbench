@@ -133,6 +133,48 @@ body:has(.sidebar[data-collapsed=true]) .interactive{width:100%}
   .brand{font-size:.75rem;line-height:1.2}
   .tabs button{padding-inline:4px}
 }
+:root{--ink:#34271d;--muted:#695a4b;--line:#e7ddd1;--blue:#864626;color:var(--ink);background:#fcf8f0}
+header,.program-directory,.viewer-head,.legend,.sidebar,.contents{background:#fffaf2;border-color:var(--line)}
+.mark,.primary,.export-menu summary{background:#864626;border-color:#864626}
+.primary:hover,.export-menu summary:hover{background:#6d371e}
+.program-directory button[aria-pressed=true],.contents button[aria-selected=true],
+.mode-row button[aria-pressed=true],.section-title button[aria-pressed=true]{background:#f4e2d0;color:#733b21;border-color:#e9cdb3}
+.contents [role=tablist]{background:#f6ede2;border-color:var(--line)}
+.contents [role=tab]{white-space:normal;min-width:0;padding-inline:5px}
+.stage:has(.interactive[data-display="print"]:not([hidden])){background:#faf4e9}
+.view-help,.unit-card{background:#f8eee1;color:var(--ink);border-color:var(--line)}
+.export-options{background:#fffaf2}
+button,input,select{border-color:var(--line)}
+button:hover,select:hover{border-color:#bd8d6a}
+.cell-tools span{color:#24645e}
+.unit-position{cursor:pointer}
+.unit-position[aria-disabled=true]{cursor:default;opacity:.4}
+.arrangement-modes button{flex:1}
+.arrangement-modes small{display:block;margin-top:3px;font-size:.72rem;font-weight:500;color:var(--muted)}
+#planeTemplate summary{cursor:pointer;color:var(--ink);font-size:.82rem;font-weight:650}
+button:focus-visible,input:focus-visible,select:focus-visible,#planeTemplate summary:focus-visible,.export-menu summary:focus-visible{outline:2px solid #a56539;outline-offset:2px}
+.export-options button:hover,.panel-heading button{background:#f8eee1}
+.unit-position:focus-visible{outline:none}
+.unit-position:focus-visible polygon:first-of-type{stroke:#24645e;stroke-width:.1}
+dialog{max-width:min(450px,calc(100vw - 24px));padding:18px;border:1px solid var(--line);border-radius:12px;background:#fffaf2;color:var(--ink)}
+dialog::backdrop{background:#2b211b65}
+dialog h2{margin:0 0 8px}
+dialog p{font-size:.86rem;line-height:1.45}
+.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px;flex-wrap:wrap}
+@media(min-width:851px){
+  .sidebar{width:min(384px,calc(100% - 34px))}
+  .interactive,.stage #canvas{width:calc(100% - 418px)}
+  body:has(.sidebar[data-collapsed=true]) .stage #canvas{width:100%}
+}
+@media(min-width:851px) and (max-width:1000px){
+  .sidebar{width:340px}
+  .interactive,.stage #canvas{width:calc(100% - 374px)}
+}
+@media(max-width:480px){
+  .workspace:has(.sidebar[data-collapsed=false]) .viewer{position:relative}
+  .workspace .sidebar[data-collapsed=false]{position:relative;inset:auto;width:auto;max-height:none;margin:0 10px 12px}
+  .sidebar[data-collapsed=false] .tab-body{max-height:none;overflow:visible}
+}
 </style>
 <header>
   <div class="brand"><span class="mark" aria-hidden="true">⬡</span><div>Seashell-Inspired Grain Structure Workbench</div></div>
@@ -142,8 +184,12 @@ body:has(.sidebar[data-collapsed=true]) .interactive{width:100%}
       <div class="export-options">
         <button id="export-stl" type="button">STL (.stl)</button>
         <button id="export-3mf" type="button">3MF (.3mf)</button>
+        <button id="export-gcode" type="button">G-code (.gcode)</button>
         <button id="csv" type="button">CSV (.csv)</button>
         <button id="svg" type="button">SVG (.svg)</button>
+        <button id="export-project" type="button">Save project (.json)</button>
+        <button id="open-project" type="button">Open project</button>
+        <input id="projectFile" type="file" accept=".json,application/json" hidden>
         <p id="exportError" role="alert" hidden></p>
       </div>
     </details>
@@ -183,22 +229,29 @@ body:has(.sidebar[data-collapsed=true]) .interactive{width:100%}
     <span id="viewHelp" class="view-help" hidden><span class="mouse-help">Drag to rotate · Scroll to zoom · Right-drag to pan</span><span class="touch-help">One finger to rotate · Pinch to zoom · Two fingers to pan</span><span> · Select a grain to edit or delete</span></span>
   </div>
 </div>
-<div class="legend"><span class="angle-key"><i class="sw" style="background:#7463bc"></i>30°</span><span class="angle-key"><i class="sw" style="background:#368f8b"></i>90°</span><span class="angle-key"><i class="sw" style="background:#d18162"></i>150°</span><span id="printKey" hidden><i class="sw" style="background:#ff900d"></i>30° · 90° · 150°</span><span id="gapLegend" hidden><i class="gap-mark"></i>Unfilled gap</span><span id="stats" class="stats" aria-live="polite"></span><span id="printNote" aria-live="polite" hidden></span></div>
+<div class="legend"><span class="angle-key"><i class="sw" style="background:#bc763c"></i>30°</span><span class="angle-key"><i class="sw" style="background:#9c6f2f"></i>90°</span><span class="angle-key"><i class="sw" style="background:#a8513d"></i>150°</span><span id="printKey" hidden><i class="sw" style="background:#df8b49"></i>30° · 90° · 150°</span><span id="gapLegend" hidden><i class="gap-mark"></i>Unfilled gap</span><span id="stats" class="stats" aria-live="polite"></span><span id="printNote" aria-live="polite" hidden></span></div>
 </section>
 <form class="panel sidebar" id="controls" data-collapsed="false">
 <div class="contents"><div class="panel-heading"><strong>Parameters</strong><button type="button" id="togglePanel" aria-expanded="true">Hide</button></div><div role="tablist" aria-label="Parameter tabs"><button type="button" role="tab" id="tab-geometry" aria-controls="panel-geometry" aria-selected="true">Geometry</button><button type="button" role="tab" id="tab-intralayer" aria-controls="panel-intralayer" aria-selected="false" tabindex="-1">In-layer Layout</button><button type="button" role="tab" id="tab-interlayer" aria-controls="panel-interlayer" aria-selected="false" tabindex="-1">Layer Stacking</button></div></div>
 <div class="tab-body" id="panel-geometry" role="tabpanel" aria-labelledby="tab-geometry">
 <section class="section" id="geometry"><h2>Sample Dimensions</h2><div class="grid"><label>Length / mm<input id="width" type="number" min="1" max="250" step="any" value="35" required></label><label>Width / mm<input id="height" type="number" min="1" max="250" step="any" value="24" required></label><label>Cell edge / mm<input id="edge" type="number" min=".25" max="50" step="any" value="2" required></label></div></section>
-<section class="section" id="patternSettings"><h2>Cell Patterns</h2><div class="style-tabs" role="group" aria-label="Cell pattern tabs"><button type="button" data-style="1" aria-pressed="true">Pattern 1</button><button type="button" data-style="2" aria-pressed="false">Pattern 2</button><button type="button" data-style="3" aria-pressed="false">Pattern 3</button></div><div id="patterns"></div><div class="unit-card"><span id="unitLabel">Pattern 1 preview</span><svg id="unit" role="img" aria-label="Three-cell pattern preview"></svg></div></section>
+<section class="section" id="patternSettings">
+  <h2>Cell Patterns</h2>
+  <label id="unitPickerLabel">Layer<select id="unitPicker"></select></label>
+  <details id="planeTemplate" hidden>
+    <summary>Pattern templates</summary>
+    <label class="spaced">Pattern<select id="planePicker"><option value="0">Pattern 1</option><option value="1">Pattern 2</option><option value="2">Pattern 3</option></select></label>
+    <div id="planePatterns" class="style-row spaced"></div>
+  </details>
+  <div class="unit-card"><span id="unitLabel">Layer 1 · Center unit</span><svg id="unit" role="group" aria-label="Three-cell unit preview"></svg></div>
+  <div id="patterns" class="style-row spaced"></div>
+</section>
 </div>
 <div class="tab-body" id="panel-intralayer" role="tabpanel" aria-labelledby="tab-intralayer" hidden>
 <section class="section"><h2>In-layer Layout</h2><label>Total layers<input id="totalLayers" type="number" min="1" max="24" step="1" value="3" required></label>
 <fieldset id="pointLayout">
-  <div class="mode-row" role="group" aria-label="Point programming layout"><button type="button" id="pointUnitCycle" data-arrangement="cycle" aria-pressed="false">Repeat units</button><button type="button" id="pointUnitCustom" data-arrangement="custom" aria-pressed="true">Custom</button></div>
-  <div class="mode-row" role="group" aria-label="In-layer sequence mode"><button type="button" id="innerDirect" aria-pressed="true">No repeat</button><button type="button" id="innerCycle" aria-pressed="false">Repeat</button></div>
-  <label id="innerCountLabel" hidden>Sequences per cycle<input id="innerCount" type="number" min="1" max="24" value="3" required disabled></label>
-  <button type="button" id="addSequence" class="spaced">＋ Add sequence</button><div id="sequences" class="spaced"></div>
-  <p id="sequenceNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">Use pattern numbers 1, 2, or 3, for example 1 3 2. In Custom mode, select a grain to override its angle.</p>
+  <div class="mode-row arrangement-modes" role="group" aria-label="Point programming layout"><button type="button" id="pointUnitCycle" data-arrangement="cycle" aria-pressed="false">Repeated units<small>Repeat</small></button><button type="button" id="pointUnitCustom" data-arrangement="custom" aria-pressed="true">Custom<small>No repeat</small></button></div>
+  <p id="sequenceNote" class="sub sequence-note" aria-live="polite"></p>
 </fieldset>
 <fieldset id="lineLayout" hidden disabled>
   <div class="mode-row" role="group" aria-label="Column template mode"><button type="button" id="lineDirect" aria-pressed="true">Independent layers</button><button type="button" id="lineRepeat" aria-pressed="false">Repeat templates</button></div>
@@ -211,39 +264,62 @@ body:has(.sidebar[data-collapsed=true]) .interactive{width:100%}
   <p id="lineNote" class="sub" aria-live="polite"></p>
 </fieldset>
 <fieldset id="faceLayout" hidden disabled>
-  <div class="mode-row" role="group" aria-label="Plane programming layout"><button type="button" id="faceUnitCycle" data-arrangement="cycle" aria-pressed="true">Repeat units</button><button type="button" id="faceUnitCustom" data-arrangement="custom" aria-pressed="false">Custom</button></div>
-  <label class="spaced">First-layer pattern sequence<input id="faceSequence" value="1 2 3" maxlength="45" spellcheck="false" required></label>
-  <p class="sub">Use pattern numbers 1, 2, or 3. Set their angles in Geometry. In Custom mode, selecting a grain edits that position in every layer.</p>
+  <div class="mode-row arrangement-modes" role="group" aria-label="Plane programming layout"><button type="button" id="faceUnitCycle" data-arrangement="cycle" aria-pressed="true">Repeated units<small>Repeat</small></button><button type="button" id="faceUnitCustom" data-arrangement="custom" aria-pressed="false">Custom<small>No repeat</small></button></div>
+  <label class="spaced" id="faceSequenceLabel">First-layer pattern sequence<input id="faceSequence" value="1 2 3" maxlength="45" spellcheck="false" required></label>
+  <label class="spaced" id="faceCustomLabel" hidden>Custom unit order<input id="faceCustomSequence" value="1" maxlength="95" spellcheck="false" required disabled></label>
+  <p id="faceRepeatNote" class="sub"></p>
 </fieldset>
 </section>
 </div>
 <div class="tab-body" id="panel-interlayer" role="tabpanel" aria-labelledby="tab-interlayer" hidden>
-<section class="section"><div class="section-title"><h2>Layer Stacking</h2><div class="presets" role="group" aria-label="Stacking presets"><button type="button" data-preset="ααα" aria-pressed="false">ααα</button><button type="button" data-preset="αβγ" aria-pressed="false">αβγ</button><button type="button" data-preset="" aria-pressed="true">Custom</button></div></div><fieldset id="stackControls"><div class="mode-row" role="group" aria-label="Stacking sequence mode"><button type="button" id="stackDirect" aria-pressed="true">No repeat</button><button type="button" id="stackCycle" aria-pressed="false">Repeat</button></div><label id="stackCountLabel" hidden>Sequences per cycle<input id="stackCount" type="number" min="1" max="24" value="3" required disabled></label><label class="spaced">Stacking sequence<input id="stackOrder" value="α β γ" maxlength="95" spellcheck="false" required></label></fieldset><p id="stackNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">Use only α, β, and γ, for example ααβ or α β γ. Spaces and commas are allowed. Layers with the same letter share an offset. α is the baseline.</p></section>
+<section class="section"><div class="section-title"><h2>Layer Stacking</h2><div class="presets" role="group" aria-label="Stacking presets"><button type="button" data-preset="ααα" aria-pressed="false">ααα</button><button type="button" data-preset="αβγ" aria-pressed="true">αβγ</button><button type="button" data-preset="" aria-pressed="false">Custom</button></div></div><fieldset id="stackControls" disabled><div class="mode-row" role="group" aria-label="Stacking sequence mode"><button type="button" id="stackDirect" aria-pressed="false">No repeat</button><button type="button" id="stackCycle" aria-pressed="true">Repeat</button></div><label id="stackCountLabel">Sequences per cycle<input id="stackCount" type="number" min="1" max="24" value="3" required></label><label class="spaced">Stacking sequence<input id="stackOrder" value="α β γ" maxlength="95" spellcheck="false" required></label></fieldset><p id="stackNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">Use only α, β, and γ, for example ααβ or α β γ. Spaces and commas are allowed. Layers with the same letter share an offset. α is the baseline.</p></section>
 </div>
 <p id="error" class="error" role="alert" hidden></p>
 </form>
 </div><p class="source">Structure reference <a href="https://doi.org/10.1038/s41467-024-53850-w" target="_blank" rel="noopener">Yu et al. · Nature Communications (2024)</a></p>
 </main>
+<dialog id="switchDialog" aria-labelledby="switchTitle">
+  <h2 id="switchTitle">Unsaved changes</h2>
+  <p id="switchDescription">Switching modes will discard edits made since your last save. Save a project file to stay in this mode.</p>
+  <div class="dialog-actions"><button type="button" id="discardSwitch">Discard and switch</button><button type="button" id="saveAndStay" class="primary" autofocus>Save and stay</button></div>
+</dialog>
+<dialog id="gcodeDialog" aria-labelledby="gcodeTitle">
+  <form id="gcodeForm">
+    <h2 id="gcodeTitle">G-code export</h2>
+    <p>Use a single-extruder Marlin-compatible printer with a positive XY origin. Review the toolpaths and printer settings before running the file.</p>
+    <div class="grid">
+      <label>Filament diameter / mm<input name="filament" type="number" min="1" max="4" step="0.01" value="1.75" required></label>
+      <label>Nozzle / °C<input name="hotend" type="number" min="170" max="300" value="210" required></label>
+      <label>Bed / °C<input name="bed" type="number" min="0" max="120" value="60" required></label>
+      <label>Build X / mm<input name="bedX" type="number" min="1" value="220" required></label>
+      <label>Build Y / mm<input name="bedY" type="number" min="1" value="220" required></label>
+      <label>Build Z / mm<input name="bedZ" type="number" min="1" value="220" required></label>
+    </div>
+    <p id="gcodeError" class="print-error" role="alert" hidden></p>
+    <div class="dialog-actions"><button id="cancelGcode" type="button">Cancel</button><button type="submit" class="primary">Download G-code</button></div>
+  </form>
+</dialog>
 <script src="./grain-3d.bundle.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
 const palette={
-  30:{fill:"#d9cdf6",line:"#6a549c",wall:"#9982ce",shade:"#665299"},
-  90:{fill:"#b5e4dc",line:"#286e70",wall:"#67b2a8",shade:"#337f80"},
-  150:{fill:"#f7cdb8",line:"#a25445",wall:"#df977a",shade:"#ad624e"},
+  30:{fill:"#f2c8a0",line:"#995525",wall:"#cd8951",shade:"#9e5c31"},
+  90:{fill:"#efdaaa",line:"#866126",wall:"#bb904e",shade:"#8f682f"},
+  150:{fill:"#edb9a7",line:"#8e4437",wall:"#cb7a62",shade:"#a45140"},
 };
 const schemes={1:[30,90,150],2:[90,150,30],3:[150,30,90]};
-const keys=Object.keys(schemes);
 const slots=["a","b","c"];
-const defaultSequences=["1 2 3","2 3 1","3 1 2"];
-const entries={direct:[...defaultSequences],cycle:[...defaultSequences]};
+const defaultUnits=Object.values(schemes);
+const pointUnits=Array.from({length:24},(_,i)=>[...defaultUnits[i%3]]);
+const planeUnits=defaultUnits.map(unit=>[...unit]);
 const stacks={direct:"α β γ",cycle:"α β γ"};
 const viewer=$("canvas");
 const root3=Math.sqrt(3);
 const round=n=>+n.toFixed(5);
 let model, preview, updateFrame=null, mode="stacked", zoom=1, pan=[0,0], drag=null;
 let plannedModel, plannedWidth, printPlan, printFrame=null;
+let centerUnit=[],centerGrid;
 const angleOverrides=new Map();
 const faceOverrides=new Map();
 const columnOverrides={direct:new Map(),cycle:new Map()};
@@ -252,38 +328,27 @@ const arrangements={point:"custom",face:"cycle"};
 let selectedCellId=null;
 let program="point",lineMode="direct",selectedColumn=null;
 let columnEditorModel,columnEditorLayer;
-let innerMode="direct",stackMode="direct",preset="",selectedStyle="1";
+let stackMode="direct",preset="αβγ",facePattern=0;
 const customEditing=()=>arrangements[program]==="custom";
 const cellEditKey=cell=>program==="face"?cell.templateId:cell.id;
 
-$("patterns").innerHTML=keys.map(key=>'<div class="style-row" id="style-row-'+key+'" '+(key==="1"?"":"hidden")+'>'+
-  schemes[key].map((angle,i)=>'<label>Position '+slots[i]+'<select id="style-'+key+'-'+i+'" aria-label="Pattern '+key+' Position '+slots[i]+'">'+Object.keys(palette).map(option=>'<option value="'+option+'" '+(String(angle)===option?'selected':'')+'>'+option+'°</option>').join('')+'</select></label>').join('')+'</div>').join('');
+for(const [id,prefix] of [["patterns","unit"],["planePatterns","template"]]){
+  $(id).innerHTML=slots.map((slot,i)=>'<label>Position '+slot+'<select id="'+prefix+'-angle-'+i+'">'+
+    Object.keys(palette).map(option=>'<option value="'+option+'">'+option+'°</option>').join('')+'</select></label>').join('');
+}
 const patternControls=Array.from($("patterns").querySelectorAll("select"));
+const planeControls=Array.from($("planePatterns").querySelectorAll("select"));
 const defaultProgramSettings={
   total:"3",layer:"0",stackMode:"direct",stackCount:"3",stacks:{...stacks},
-  preset:"αβγ",angles:patternControls.map(input=>input.value),panel:"tab-intralayer"
+  preset:"αβγ",panel:"tab-intralayer"
 };
 const programSettings=new Map();
 
-function showSequenceRows(){
-  const list=$("sequences");
-  list.replaceChildren();
-  const values=entries[innerMode];
-  const cycleCount=+$("innerCount").value;
-  const count=innerMode==="cycle"?Math.min(24,Math.max(0,Math.floor(cycleCount))):values.length;
-  Array.from({length:count},(_,i)=>values[i]??defaultSequences[i%defaultSequences.length]).forEach((value,index)=>{
-    const row=document.createElement("div");
-    row.className="sequence-row";
-    row.innerHTML='<label>Sequence '+(index+1)+'<input maxlength="45" spellcheck="false" required></label><button type="button">×</button>';
-    const input=row.querySelector("input"),remove=row.querySelector("button");
-    input.value=value;
-    input.addEventListener("input",()=>{values[index]=input.value});
-    remove.hidden=innerMode==="cycle";
-    remove.disabled=values.length===1;
-    remove.setAttribute("aria-label","Remove sequence "+(index+1));
-    remove.onclick=()=>{values.splice(index,1);showSequenceRows();update()};
-    list.append(row);
-  });
+function latticePhase(row,col,length){
+  const u=(col+2*row)/3,v=(col-row)/3;
+  // The three nearest unit directions are (1,0), (0,1), and (1,-1).
+  // Even periods advance on alternate rows so none of those directions stays constant.
+  return length%2 ? u+2*v : u+Math.floor(v/2);
 }
 
 const parseStack=value=>Array.from(value.toLowerCase().replace(/[\s,，、→-]/g,""));
@@ -330,17 +395,15 @@ function build(){
   const width=+$("width").value,height=+$("height").value,edge=+$("edge").value;
   const total=+$("totalLayers").value;
   const point=program==="point",line=program==="line",face=program==="face";
-  const sequenceCount=innerMode==="cycle"?+$("innerCount").value:entries.direct.length;
+  const repeatingPlane=face&&arrangements.face==="cycle";
   const lineCount=lineMode==="cycle"?+$("lineCount").value:total;
-  if(point&&sequenceCount>total) throw Error("The number of in-layer sequences cannot exceed the layer count.");
   if(line&&lineCount>total) throw Error("The number of column templates cannot exceed the layer count.");
   if(!$("controls").checkValidity()) throw Error("Enter valid dimensions, a layer count, and a sequence.");
-  const inputs=point?Array.from($("sequences").querySelectorAll("input")):face?[$("faceSequence")]:[];
-  const sequences=inputs.map(input=>input.value.replace(/[\s,，、→-]/g,""));
-  if(sequences.some(sequence=>!/^[123]+$/.test(sequence))) throw Error("Use only pattern numbers 1, 2, and 3.");
+  const sequence=face?$(repeatingPlane?"faceSequence":"faceCustomSequence").value.replace(/[\s,，、→-]/g,""):"";
+  if(face&&!/^[123]+$/.test(sequence)) throw Error("Use only pattern numbers 1, 2, and 3.");
   const layers=Array.from({length:total},(_,i)=>{
     if(line) return i%lineCount;
-    return point&&innerMode==="cycle"?i%sequences.length:Math.min(i,sequences.length-1);
+    return point?i:0;
   });
   const layouts=getStack(total);
   const pitch=root3*edge;
@@ -361,11 +424,11 @@ function build(){
     }
   }
   let faceAnchor=0;
+  const customUnitOrder=new Map();
   const grids=layers.map((sequenceIndex,layer)=>{
-    const sequence=sequences[sequenceIndex];
     const letter=layouts[layer];
     const [dx,dy]=getOffset(letter,edge);
-    const clippedGroups=groups.map(({row,col,points},anchor)=>{
+    const clippedGroups=groups.map(({row,col,points})=>{
       const cells=points.map(([x,y,column],slot)=>{
         x+=dx;y+=dy;
         const templateId=[row,col,slot].join(":");
@@ -374,19 +437,20 @@ function build(){
         const next=c.points[(i+1)%c.points.length];
         return area+x*next[1]-y*next[0];
       },0))>1e-8);
-      return {anchor,cells};
+      return {key:row+":"+col,phase:repeatingPlane?latticePhase(row,col,sequence.length):0,cells};
     }).filter(group=>group.cells.length);
-    if(face&&layer===0) faceAnchor=clippedGroups[0]?.anchor??0;
-    return clippedGroups.flatMap(({anchor,cells},group)=>{
-      // Retain the same template phase at a lattice address after each layer is shifted and clipped.
-      const phase=face?anchor-faceAnchor:group;
-      const style=line?"":sequence[((phase%sequence.length)+sequence.length)%sequence.length];
+    if(repeatingPlane&&layer===0) faceAnchor=clippedGroups[0]?.phase??0;
+    if(face&&!repeatingPlane&&layer===0) clippedGroups.forEach(({key},i)=>customUnitOrder.set(key,sequence[i]??"1"));
+    return clippedGroups.flatMap(({key,phase,cells},group)=>{
+      const style=line?"":point?String(sequenceIndex+1):repeatingPlane
+        ?sequence[((phase-faceAnchor)%sequence.length+sequence.length)%sequence.length]
+        :customUnitOrder.get(key)??"1";
       // Keep the original indexing so deleting a grain does not shift the surrounding patterns.
       return cells.filter(c=>!deletedGrains[program].has(cellEditKey(c))).map(c=>{
-        const baseAngle=line?[30,90,150][((c.column%3)+3)%3]:+$("style-"+style+"-"+c.slot).value;
+        const baseAngle=line?[30,90,150][((c.column%3)+3)%3]:(point?pointUnits:planeUnits)[+style-1][c.slot];
         const override=line?columnOverrides[lineMode].get(sequenceIndex+":"+c.column):
           customEditing()?(point?angleOverrides.get(c.id):faceOverrides.get(c.templateId)):undefined;
-        return {...c,style,group:group+1,cycle:line?1:Math.floor(group/sequence.length)+1,slot:slots[c.slot],
+        return {...c,style,group:group+1,cycle:repeatingPlane?Math.floor(group/sequence.length)+1:1,slot:slots[c.slot],
           baseAngle,angle:override??baseAngle,layer:layer+1,letter,sequence:sequenceIndex+1};
       });
     });
@@ -409,19 +473,83 @@ function fillDefs(prefix,spacing){
 }
 
 function face(c,prefix,stroke){
-  const name=c.style?"Pattern "+c.style+" · Position "+c.slot:"Column cell";
+  const name=c.style?(program==="point"?"Layer ":"Pattern ")+c.style+" · Position "+c.slot:"Column cell";
   return '<polygon points="'+coords(c.points)+'" fill="url(#'+prefix+c.angle+')" stroke="'+palette[c.angle].line+'" stroke-linejoin="round" stroke-width="'+stroke+'"><title>'+name+' · '+c.angle+'°</title></polygon>';
 }
 
-function showUnit(){
-  const style=selectedStyle;
+function findCenterUnit(grid){
+  if(centerGrid===grid) return centerUnit;
+  centerGrid=grid;
+  const groups=new Map();
+  for(const cell of grid){
+    if(!groups.has(cell.group)) groups.set(cell.group,[]);
+    groups.get(cell.group).push(cell);
+  }
+  let closest=[],distance=Infinity;
+  for(const cells of groups.values()){
+    const centerX=cells.reduce((sum,cell)=>sum+cell.x,0)/cells.length;
+    const centerY=cells.reduce((sum,cell)=>sum+cell.y,0)/cells.length;
+    const next=Math.hypot(centerX-model.width/2,centerY-model.height/2);
+    if(cells.length>closest.length||(cells.length===closest.length&&next<distance)){
+      closest=cells;
+      distance=next;
+    }
+  }
+  return centerUnit=closest;
+}
+
+function showUnit(layer,cell){
+  const point=program==="point";
+  const picker=$("unitPicker");
+  const count=model.grids.length;
+  if(picker.options.length!==count){
+    picker.replaceChildren(...Array.from({length:count},(_,i)=>new Option("Layer "+(i+1),i)));
+  }
+  picker.value=layer;
+  $("planeTemplate").hidden=point;
+  $("planePicker").value=facePattern;
+  planeControls.forEach((input,i)=>{input.value=planeUnits[facePattern][i]});
+  const unit=findCenterUnit(model.grids[layer]);
+  const index=point?layer:(+unit[0]?.style||1)-1;
+  const angles=[...(point?pointUnits:planeUnits)[index]];
+  for(const grain of unit) angles[slots.indexOf(grain.slot)]=grain.angle;
+  patternControls.forEach((input,i)=>{
+    input.value=angles[i];
+    input.disabled=!unit.some(grain=>grain.slot===slots[i]);
+  });
   const centers=[[0,0],[root3,0],[root3/2,1.5]];
-  $("unitLabel").textContent="Pattern "+style+" preview";
+  $("unitLabel").textContent="Layer "+(layer+1)+(unit.length?" · Center unit":" · No grains");
   $("unit").setAttribute("viewBox","-1.05 -1.12 3.84 3.78");
-  $("unit").innerHTML='<defs>'+fillDefs("mini-",.23)+'</defs>'+centers.map(([x,y],i)=>
-    face({points:polygon(x,y,1),angle:+$("style-"+style+"-"+i).value,style,slot:slots[i]},"mini-",.035)+
-    '<text x="'+x+'" y="'+(y+.1)+'" text-anchor="middle" font-weight="700" font-size=".3" paint-order="stroke" stroke="#f8fbff" stroke-width=".045" fill="#172741">'+slots[i]+'</text>'
-  ).join("");
+  $("unit").innerHTML='<defs>'+fillDefs("mini-",.23)+'</defs>'+centers.map(([x,y],i)=>{
+    const grain=unit.find(item=>item.slot===slots[i]);
+    const active=Boolean(grain&&grain.id===cell?.id);
+    const points=polygon(x,y,1);
+    return '<g class="unit-position" role="button" tabindex="'+(grain?0:-1)+'" aria-label="Unit position '+slots[i]+
+      '" aria-pressed="'+active+'" aria-disabled="'+!grain+'" data-slot="'+i+'">'+
+      face({points,angle:angles[i],style:index+1,slot:slots[i]},"mini-",.035)+
+      (active?'<polygon points="'+coords(points)+'" fill="#34736c" fill-opacity=".38" stroke="#24645e" stroke-width=".07"/>':"")+
+      '<text x="'+x+'" y="'+(y+.1)+'" text-anchor="middle" font-weight="700" font-size=".3" paint-order="stroke" stroke="#fff6e8" stroke-width=".045" fill="#34271d">'+slots[i]+'</text></g>';
+  }).join("");
+}
+
+function editUnit(slot,angle,index){
+  const units=program==="point"?pointUnits:planeUnits;
+  units[index][slot]=angle;
+  update();
+}
+
+function editGrainAngle(cell,angle){
+  const overrides=program==="face"?faceOverrides:angleOverrides;
+  const id=cellEditKey(cell);
+  if(angle===cell.baseAngle) overrides.delete(id);
+  else overrides.set(id,angle);
+  update();
+}
+
+function chooseUnitPosition(slot){
+  if(!model||program==="line") return;
+  const chosen=findCenterUnit(model.grids[+$("layer").value]).find(cell=>cell.slot===slots[slot]);
+  if(chosen) selectCell(chosen);
 }
 
 function render(){
@@ -433,7 +561,7 @@ function render(){
   const canUndo=deletedGrains[program].size>0;
   $("cellTools").hidden=mode!=="three"||(!cell&&!canUndo);
   $("cellInfo").hidden=$("clearCell").hidden=$("deleteCell").hidden=!cell;
-  $("cellAngleControl").hidden=!cell||!customEditing();
+  $("cellAngleControl").hidden=!cell;
   $("undoDelete").hidden=!canUndo;
   if(cell){
     $("cellInfo").textContent=program==="face"?"Shared cell · "+cell.group+cell.slot:"Layer "+cell.layer+" · "+cell.group+cell.slot;
@@ -442,7 +570,8 @@ function render(){
     $("deleteCell").title=program==="face"?"Delete this grain from the shared layer template":"Delete this grain from the selected layer";
   }
   const column=program==="line"?showColumnEditor(current):null;
-  const sequenceLabel=program==="face"?"Layer 1 template":(program==="line"?"Column template ":"Sequence ")+(layers[current]+1);
+  if(program!=="line") showUnit(current,cell);
+  const sequenceLabel=program==="face"?"Layer 1 template":(program==="line"?"Column template ":"Layer unit ")+(layers[current]+1);
   $("stats").textContent="Layer "+(current+1)+" of "+grids.length+" · "+sequenceLabel+" · Stack "+layouts[current]+" · "+grids[current].length+" cells";
   if(mode==="three") renderThree(current,cell??column);
   if(mode!=="three"||$("interactive").dataset.status==="error") renderSvg(zoom,pan);
@@ -483,7 +612,7 @@ function renderThree(layer,cell){
   try{
     const plan=getPrintPlan();
     const count=plan.layers[layer].tracks.length;
-    $("printNote").textContent=count+" strands · "+round(plan.height)+" mm layer · "+round(plan.gap)+" mm gap";
+    $("printNote").textContent=count+" strands · "+round(plan.height)+" mm layer · "+round(plan.gap)+" mm in-layer gap";
     preview.update(model,layer,plan,style==="layer",cell);
   }catch(error){
     $("printError").textContent=error.message;
@@ -530,7 +659,7 @@ function renderSvg(viewZoom,viewPan){
   viewer.setAttribute("viewBox",[minX+(w-w/viewZoom)/2+viewPan[0],minY+(h-h/viewZoom)/2+viewPan[1],w/viewZoom,h/viewZoom].join(" "));
   const indices=grids.map((_,i)=>i).reverse();
   const stroke=round(edge*.024);
-  const shadow='<defs><filter id="depth-shadow" x="-30%" y="-40%" width="160%" height="180%"><feGaussianBlur stdDeviation="'+round(edge*.55)+'"/></filter></defs><polygon points="'+coords(corners.map(p=>project(p,grids.length*step+edge*.3)))+'" fill="#516584" opacity=".20" filter="url(#depth-shadow)"/>';
+  const shadow='<defs><filter id="depth-shadow" x="-30%" y="-40%" width="160%" height="180%"><feGaussianBlur stdDeviation="'+round(edge*.55)+'"/></filter></defs><polygon points="'+coords(corners.map(p=>project(p,grids.length*step+edge*.3)))+'" fill="#6f4a34" opacity=".20" filter="url(#depth-shadow)"/>';
   viewer.innerHTML='<defs>'+fillDefs("face-",round(edge*.21))+'</defs>'+shadow+
     indices.map(i=>{
       const z=i*step;
@@ -543,8 +672,11 @@ function renderSvg(viewZoom,viewPan){
         const color=palette[c.angle];
         return '<polygon points="'+coords([u,v,project(b,z+thickness),project(a,z+thickness)])+'" fill="'+(v[1]>u[1]?color.wall:color.shade)+'" stroke="'+color.shade+'" stroke-width="'+stroke+'"/>';
       }).join("")).join("");
+      const selected=i===current?getSelectedCell(current):null;
+      const highlight=selected?'<polygon class="svg-selection" points="'+coords(selected.points)+
+        '" fill="#34736c" fill-opacity=".38" stroke="#24645e" stroke-width="'+stroke*2+'"/>':"";
       return '<g opacity="'+(i<current?.19:1)+'">'+walls+
-        '<g transform="matrix('+matrix.join(" ")+' 0 '+z+')">'+cells.map(c=>face(c,"face-",stroke)).join("")+'</g></g>';
+        '<g transform="matrix('+matrix.join(" ")+' 0 '+z+')">'+cells.map(c=>face(c,"face-",stroke)).join("")+highlight+'</g></g>';
     }).join("");
 }
 
@@ -552,12 +684,12 @@ function update(preferredLayer=$("layer").value){
   if(updateFrame!==null) cancelAnimationFrame(updateFrame);
   updateFrame=null;
   const total=+$("totalLayers").value;
-  const count=innerMode==="cycle"?+$("innerCount").value:entries.direct.length;
-  $("addSequence").disabled=!Number.isInteger(total)||total>24||count>=total;
-  $("sequenceNote").textContent=count+" sequences / "+(total||"—")+" layers. "+(innerMode==="cycle"?"Repeat in order and stop at the layer limit.":"Use each sequence once, then hold the last sequence.");
-  $("stackNote").textContent=preset?"Preset "+preset+" is locked and repeats to the layer limit.":stackMode==="cycle"?"Enter "+(+$("stackCount").value||"—")+" letters to repeat.":"Enter "+(total||"—")+" letters, one per layer.";
+  const repeated=arrangements.point==="cycle";
+  $("sequenceNote").textContent=repeated
+    ?"Each numbered layer repeats its own unit vertically and in both diagonal directions."
+    :"Edit individual grains on each layer. Angles can differ from one unit to the next.";
+  $("stackNote").textContent=preset?"Repeat "+preset+" through all "+(total||"—")+" layers.":stackMode==="cycle"?"Enter "+(+$("stackCount").value||"—")+" letters to repeat.":"Enter "+(total||"—")+" letters, one per layer.";
   try{
-    showUnit();
     const next=build();
     const old=+preferredLayer||0;
     model=next;
@@ -577,7 +709,7 @@ function update(preferredLayer=$("layer").value){
 
 function setExportAvailability(valid){
   $("csv").disabled=$("svg").disabled=!valid;
-  $("export-stl").disabled=$("export-3mf").disabled=!valid||!globalThis.Grain3D;
+  $("export-stl").disabled=$("export-3mf").disabled=$("export-gcode").disabled=!valid||!globalThis.Grain3D;
 }
 
 function save(filename,data,type){
@@ -590,7 +722,7 @@ function save(filename,data,type){
 
 $("controls").addEventListener("submit",e=>e.preventDefault());
 $("controls").addEventListener("input",event=>{
-  if(event.target.closest("#lineEditor")) return;
+  if(event.target.closest("#lineEditor, #patterns, #unitPicker, #planeTemplate")) return;
   if(updateFrame===null) updateFrame=requestAnimationFrame(()=>update());
 });
 function togglePanel(collapsed){
@@ -600,11 +732,32 @@ function togglePanel(collapsed){
 }
 $("togglePanel").onclick=()=>togglePanel($("controls").dataset.collapsed!=="true");
 togglePanel(matchMedia("(max-width: 850px)").matches);
-document.querySelectorAll("[data-style]").forEach(button=>button.onclick=()=>{
-  selectedStyle=button.dataset.style;
-  keys.forEach(key=>$("style-row-"+key).hidden=key!==selectedStyle);
-  document.querySelectorAll("[data-style]").forEach(item=>item.setAttribute("aria-pressed",item===button));
-  showUnit();
+$("unitPicker").onchange=()=>{
+  selectedCellId=null;
+  $("layer").value=$("unitPicker").value;
+  render();
+};
+$("planePicker").onchange=()=>{
+  facePattern=+$("planePicker").value;
+  render();
+};
+planeControls.forEach((input,slot)=>input.onchange=()=>editUnit(slot,+input.value,facePattern));
+patternControls.forEach((input,slot)=>input.onchange=()=>{
+  const cell=findCenterUnit(model.grids[+$("layer").value]).find(grain=>grain.slot===slots[slot]);
+  if(!cell) return;
+  if(customEditing()) editGrainAngle(cell,+input.value);
+  else editUnit(slot,+input.value,+cell.style-1);
+});
+$("unit").addEventListener("click",event=>{
+  const button=event.target.closest("[data-slot]");
+  if(button) chooseUnitPosition(+button.dataset.slot);
+});
+$("unit").addEventListener("keydown",event=>{
+  const button=event.target.closest("[data-slot]");
+  if(!button||button.getAttribute("aria-disabled")==="true"||!["Enter"," "].includes(event.key)) return;
+  event.preventDefault();
+  chooseUnitPosition(+button.dataset.slot);
+  $("unit").querySelector('[data-slot="'+button.dataset.slot+'"]')?.focus();
 });
 const directory=Array.from(document.querySelectorAll(".contents [role=tab]"));
 function switchPanel(active){
@@ -625,32 +778,132 @@ directory.forEach((tab,index)=>{
     directory[next].focus({preventScroll:true});
   });
 });
+let savedDesign,pendingProgram,pendingProject;
+const sharedFields=["width","height","edge","strandWidth"];
+function captureDesign(){
+  return {
+    dimensions:Object.fromEntries(sharedFields.map(id=>[id,$(id).value])),
+    total:$("totalLayers").value,stackMode,preset,stackCount:$("stackCount").value,
+    stacks:{...stacks,...(!preset?{[stackMode]:$("stackOrder").value}:{})},
+    arrangement:arrangements[program],deleted:[...deletedGrains[program]],
+    ...(program==="point"?{units:pointUnits.map(unit=>[...unit]),angles:[...angleOverrides]}:{}),
+    ...(program==="face"?{units:planeUnits.map(unit=>[...unit]),sequence:$("faceSequence").value,
+      customSequence:$("faceCustomSequence").value,angles:[...faceOverrides]}:{}),
+    ...(program==="line"?{lineMode,lineCount:$("lineCount").value,
+      columns:{direct:[...columnOverrides.direct],cycle:[...columnOverrides.cycle]}}:{})
+  };
+}
+function restoreDesign(design,shared){
+  if(shared) for(const id of sharedFields) $(id).value=design.dimensions[id];
+  $("totalLayers").value=design.total;
+  $("stackCount").value=design.stackCount;
+  for(const kind of ["direct","cycle"]) stacks[kind]=design.stacks[kind];
+  stackMode=design.stackMode;
+  preset=design.preset;
+  if(program!=="line") arrangements[program]=design.arrangement??(program==="point"?"custom":"cycle");
+  deletedGrains[program]=new Set(design.deleted);
+  if(program==="point"){
+    for(let i=0;i<pointUnits.length;i++) pointUnits[i]=[...(design.units?.[i]??defaultUnits[i%3])];
+    angleOverrides.clear();
+    for(const [key,value] of design.angles??[]) angleOverrides.set(key,value);
+  }
+  if(program==="face"){
+    for(let i=0;i<planeUnits.length;i++) planeUnits[i]=[...(design.units?.[i]??defaultUnits[i])];
+    $("faceSequence").value=design.sequence??"1 2 3";
+    $("faceCustomSequence").value=design.customSequence??"1";
+    faceOverrides.clear();
+    for(const [key,value] of design.angles??[]) faceOverrides.set(key,value);
+  }
+  if(program==="line"){
+    lineMode=design.lineMode??"direct";
+    $("lineCount").value=design.lineCount??"3";
+    for(const name of ["direct","cycle"]) columnOverrides[name]=new Map(design.columns?.[name]);
+    syncLineControls();
+  }
+  syncStackControls();
+  syncArrangement();
+}
+function saveProject(){
+  const design=captureDesign();
+  const modes=Object.fromEntries([...programSettings].filter(([name])=>name!==program).map(([name,state])=>[name,state.design]));
+  save("grain-workbench-project.json",JSON.stringify({version:1,program,design,modes},null,2),"application/json");
+  savedDesign=design;
+}
+function isDirty(){
+  return JSON.stringify(captureDesign())!==JSON.stringify(savedDesign);
+}
+function checkProject(file){
+  const names=["point","line","face"];
+  const strings=(object,keys)=>keys.every(key=>typeof object?.[key]==="string");
+  const angle=value=>Number.isInteger(value)&&Object.hasOwn(palette,value);
+  const pairs=list=>Array.isArray(list)&&list.every(row=>Array.isArray(row)&&row.length===2&&typeof row[0]==="string"&&angle(row[1]));
+  const mode=value=>["direct","cycle"].includes(value);
+  const validDesign=(name,design)=>{
+    if(!strings(design,["total","stackCount"])||!strings(design.dimensions,sharedFields)||!strings(design.stacks,["direct","cycle"])||
+      !mode(design.stackMode)||!["","ααα","αβγ"].includes(design.preset)||
+      !Array.isArray(design.deleted)||!design.deleted.every(key=>typeof key==="string")) return false;
+    if(name==="line") return mode(design.lineMode)&&strings(design,["lineCount"])&&pairs(design.columns?.direct)&&pairs(design.columns?.cycle);
+    return ["custom","cycle"].includes(design.arrangement)&&pairs(design.angles)&&Array.isArray(design.units)&&
+      design.units.length===(name==="point"?24:3)&&design.units.every(unit=>Array.isArray(unit)&&unit.length===3&&unit.every(angle))&&
+      (name==="point"||(strings(design,["sequence"])&&(design.customSequence===undefined||strings(design,["customSequence"]))));
+  };
+  if(file?.version!==1||!names.includes(file.program)||!validDesign(file.program,file.design)||
+    names.some(name=>file.modes?.[name]!==undefined&&!validDesign(name,file.modes[name]))) throw Error("Choose a valid Grain Workbench project.");
+  return file;
+}
+function openProject(file){
+  programSettings.clear();
+  for(const name of ["point","line","face"]){
+    if(name!==file.program&&file.modes?.[name]) programSettings.set(name,{...defaultProgramSettings,design:file.modes[name]});
+  }
+  for(const id of sharedFields) $(id).value=file.design.dimensions[id];
+  activateProgram(file.program,{...defaultProgramSettings,design:file.design,panel:"tab-geometry"});
+}
+function requestProgramSwitch(next){
+  if(next===program) return;
+  if(!isDirty()) switchProgram(next);
+  else{
+    pendingProgram=next;
+    showDiscardDialog(false);
+  }
+}
+function showDiscardDialog(opening){
+  $("switchDescription").textContent=(opening?"Opening another project":"Switching modes")+
+    " will discard edits made since your last save. Save a project file to keep editing here.";
+  $("discardSwitch").textContent=opening?"Discard and open":"Discard and switch";
+  $("switchDialog").showModal();
+}
+$("saveAndStay").onclick=()=>{saveProject();$("switchDialog").close()};
+$("discardSwitch").onclick=()=>{
+  const next=pendingProgram;
+  const file=pendingProject;
+  $("switchDialog").close();
+  if(file) openProject(file);
+  else{
+    restoreDesign(savedDesign,true);
+    switchProgram(next);
+  }
+};
+$("switchDialog").addEventListener("close",()=>{pendingProgram=pendingProject=null});
 function switchProgram(next){
   if(next===program) return;
   programSettings.set(program,{
-    total:$("totalLayers").value,layer:$("layer").value,stackMode,stackCount:$("stackCount").value,
-    stacks:{...stacks,[stackMode]:$("stackOrder").value},preset,
-    cell:selectedCellId,column:selectedColumn,collapsed:$("controls").dataset.collapsed==="true",
-    angles:patternControls.map(input=>input.value),
+    design:captureDesign(),layer:$("layer").value,
+    column:selectedColumn,collapsed:$("controls").dataset.collapsed==="true",
     panel:directory.find(tab=>tab.getAttribute("aria-selected")==="true").id
   });
+  activateProgram(next,programSettings.get(next)??defaultProgramSettings);
+}
+function activateProgram(next,settings){
   program=next;
-  const settings=programSettings.get(next)??defaultProgramSettings;
-  $("totalLayers").value=settings.total;
-  $("stackCount").value=settings.stackCount;
-  Object.assign(stacks,settings.stacks);
-  stackMode=settings.stackMode;
-  preset=settings.preset;
-  $("stackOrder").value=stacks[stackMode];
-  syncStackControls();
-  patternControls.forEach((input,i)=>{input.value=settings.angles[i]});
+  restoreDesign(settings.design??defaultProgramSettings,false);
   for(const entry of ["point","line","face"]){
     $(entry+"Layout").hidden=$(entry+"Layout").disabled=entry!==next;
   }
   $("patternSettings").hidden=next==="line";
   $("cellTools").hidden=true;
   syncArrangement();
-  selectedCellId=settings.cell??null;
+  selectedCellId=null;
   selectedColumn=settings.column??null;
   for(const button of document.querySelectorAll("[data-program]")){
     button.setAttribute("aria-pressed",button.dataset.program===next);
@@ -658,11 +911,18 @@ function switchProgram(next){
   togglePanel(settings.collapsed??false);
   switchPanel($(settings.panel));
   update(settings.layer);
+  savedDesign=captureDesign();
 }
 document.querySelectorAll("[data-program]").forEach(button=>{
-  button.onclick=()=>switchProgram(button.dataset.program);
+  button.onclick=()=>requestProgramSwitch(button.dataset.program);
 });
 function syncArrangement(){
+  const repeat=arrangements.face==="cycle";
+  $("faceSequenceLabel").hidden=$("faceSequence").disabled=!repeat;
+  $("faceCustomLabel").hidden=$("faceCustomSequence").disabled=repeat;
+  $("faceRepeatNote").textContent=repeat
+    ?"The sequence cycles vertically and in both diagonal directions."
+    :"Enter pattern numbers 1–3 once, starting at the upper left. Remaining units start with Pattern 1. Grain edits apply to the same position on every layer.";
   for(const button of $(program+"Layout").querySelectorAll("[data-arrangement]")){
     button.setAttribute("aria-pressed",button.dataset.arrangement===arrangements[program]);
   }
@@ -677,30 +937,14 @@ document.querySelectorAll("[data-arrangement]").forEach(button=>{
     update();
   };
 });
-$("addSequence").onclick=()=>{
-  if(entries.direct.length>=+$("totalLayers").value)return;
-  entries.direct.push("1 2 3");
-  showSequenceRows();
-  update();
-  $("sequences").lastElementChild.querySelector("input").focus();
-};
-function selectInner(next){
-  innerMode=next;
-  const cycling=next==="cycle";
-  $("innerDirect").setAttribute("aria-pressed",!cycling);
-  $("innerCycle").setAttribute("aria-pressed",cycling);
-  $("innerCountLabel").hidden=$("innerCount").disabled=!cycling;
-  $("addSequence").hidden=cycling;
-  showSequenceRows();
-  update();
-}
 function syncStackControls(){
-  const cycling=stackMode==="cycle";
+  const cycling=Boolean(preset)||stackMode==="cycle";
   $("stackDirect").setAttribute("aria-pressed",!cycling);
   $("stackCycle").setAttribute("aria-pressed",cycling);
-  $("stackCountLabel").hidden=$("stackCount").disabled=!cycling;
+  $("stackCountLabel").hidden=$("stackCount").disabled=!cycling||Boolean(preset);
   $("stackControls").disabled=Boolean(preset);
   $("stackControls").classList.toggle("locked",Boolean(preset));
+  $("stackOrder").value=preset?[...preset].join(" "):stacks[stackMode];
   document.querySelectorAll("[data-preset]").forEach(item=>item.setAttribute("aria-pressed",item.dataset.preset===preset));
 }
 function selectStack(next){
@@ -710,18 +954,19 @@ function selectStack(next){
   syncStackControls();
   update();
 }
-function selectLine(next){
-  lineMode=next;
-  const cycling=next==="cycle";
+function syncLineControls(){
+  const cycling=lineMode==="cycle";
   $("lineDirect").setAttribute("aria-pressed",!cycling);
   $("lineRepeat").setAttribute("aria-pressed",cycling);
   $("lineCountLabel").hidden=$("lineCount").disabled=!cycling;
+}
+function selectLine(next){
+  lineMode=next;
+  const cycling=next==="cycle";
+  syncLineControls();
   if(cycling&&+$("lineCount").value>+$("totalLayers").value) $("lineCount").value=$("totalLayers").value;
   update();
 }
-$("innerDirect").onclick=()=>selectInner("direct");
-$("innerCycle").onclick=()=>selectInner("cycle");
-$("innerCount").addEventListener("input",showSequenceRows);
 $("stackDirect").onclick=()=>selectStack("direct");
 $("stackCycle").onclick=()=>selectStack("cycle");
 $("lineDirect").onclick=()=>selectLine("direct");
@@ -735,18 +980,19 @@ $("lineColumn").onchange=()=>{
   selectedColumn=+$("lineColumn").value;
   render();
 };
-$("lineAngle").onchange=()=>{
+function editColumnAngle(angle){
   if(model?.program!=="line") return;
   const layer=+$("layer").value;
   const cells=model.columns[layer].get(selectedColumn);
-  const angle=+$("lineAngle").value;
   if(!cells||!Object.hasOwn(palette,angle)) return;
   const key=model.layers[layer]+":"+selectedColumn;
   if(angle===cells[0].baseAngle) columnOverrides[lineMode].delete(key);
   else columnOverrides[lineMode].set(key,angle);
   update();
-};
+}
+$("lineAngle").onchange=()=>editColumnAngle(+$("lineAngle").value);
 document.querySelectorAll("[data-preset]").forEach(button=>button.onclick=()=>{
+  if(!preset) stacks[stackMode]=$("stackOrder").value;
   preset=button.dataset.preset;
   syncStackControls();
   update();
@@ -774,16 +1020,14 @@ document.addEventListener("keydown",event=>{
   }else if(mode==="three"&&selectedCellId!==null) selectCell(null);
 });
 $("cellAngle").onchange=()=>{
-  if(!customEditing()||model?.program!==program) return;
+  if(model?.program!==program) return;
   const cell=getSelectedCell();
   if(!cell) return;
   const angle=+$("cellAngle").value;
   if(!Object.hasOwn(palette,angle)) return;
-  const overrides=program==="face"?faceOverrides:angleOverrides;
-  const id=cellEditKey(cell);
-  if(angle===cell.baseAngle) overrides.delete(id);
-  else overrides.set(id,angle);
-  update();
+  if(program==="line"){editColumnAngle(angle);return}
+  if(!customEditing()){editUnit(slots.indexOf(cell.slot),angle,+cell.style-1);return}
+  editGrainAngle(cell,angle);
 };
 $("strandWidth").addEventListener("input",()=>{
   if(printFrame===null) printFrame=requestAnimationFrame(()=>{printFrame=null;render()});
@@ -818,6 +1062,7 @@ $("svg").onclick=()=>{
   if($("svg").disabled) return;
   renderSvg(1,[0,0]);
   const snapshot=viewer.cloneNode(true);
+  snapshot.querySelector(".svg-selection")?.remove();
   snapshot.removeAttribute("hidden");
   const vb=viewer.viewBox.baseVal;
   snapshot.setAttribute("width","1400");
@@ -845,9 +1090,50 @@ function exportModel(format){
 }
 $("export-stl").onclick=()=>exportModel("stl");
 $("export-3mf").onclick=()=>exportModel("3mf");
+$("export-project").onclick=saveProject;
+$("open-project").onclick=()=>$("projectFile").click();
+$("projectFile").onchange=async event=>{
+  const file=event.target.files[0];
+  event.target.value="";
+  if(!file) return;
+  try{
+    const project=checkProject(JSON.parse(await file.text()));
+    $("exportMenu").open=false;
+    if(isDirty()){
+      pendingProject=project;
+      showDiscardDialog(true);
+    }else openProject(project);
+  }catch{
+    $("exportMenu").open=true;
+    $("exportError").textContent="Choose a valid Grain Workbench project.";
+    $("exportError").hidden=false;
+  }
+};
+$("export-gcode").onclick=()=>{
+  $("exportMenu").open=false;
+  $("gcodeError").hidden=true;
+  $("gcodeDialog").showModal();
+};
+$("cancelGcode").onclick=()=>$("gcodeDialog").close();
+$("gcodeForm").onsubmit=event=>{
+  event.preventDefault();
+  if(updateFrame!==null) update();
+  try{
+    if($("export-gcode").disabled) throw Error("Resolve the specimen settings before exporting.");
+    const settings=Object.fromEntries([...new FormData(event.target)].map(([key,value])=>[key,+value]));
+    const code=Grain3D.exportGcode(model,$("strandWidth").valueAsNumber,settings);
+    save("grain-strands.gcode",code,"text/plain");
+    $("gcodeDialog").close();
+  }catch(error){
+    $("gcodeError").textContent=error.message;
+    $("gcodeError").hidden=false;
+  }
+};
 $("exportMenu").addEventListener("toggle",()=>{if(!$("exportMenu").open) $("exportError").hidden=true});
 document.addEventListener("click",event=>{
   if($("exportMenu").open&&!$("exportMenu").contains(event.target)) $("exportMenu").open=false;
+  const path=event.composedPath();
+  if(selectedCellId!==null&&!["unit","cellTools","patterns","interactive","canvas"].some(id=>path.includes($(id)))) selectCell(null);
 });
 if(globalThis.Grain3D&&globalThis.ResizeObserver){
   preview=Grain3D.createPreview($("interactive"),palette,status=>{
@@ -871,7 +1157,9 @@ if(globalThis.Grain3D&&globalThis.ResizeObserver){
   viewer.setAttribute("hidden","");
   preview.show(true);
 }
-showSequenceRows();
+syncStackControls();
+syncArrangement();
 update();
+savedDesign=captureDesign();
 </script>
 </html>

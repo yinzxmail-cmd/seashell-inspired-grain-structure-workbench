@@ -7,7 +7,7 @@ const angles = new Map([30, 90, 150].map(angle => {
   return [angle, [Math.cos(rad), -Math.sin(rad)]];
 }));
 
-function lineSpan(polygon, offset) {
+export function lineSpan(polygon, offset) {
   let min = Infinity, max = -Infinity;
   for (let i = 0; i < polygon.length; i++) {
     const [x, y] = polygon[i], [nextX, nextY] = polygon[(i + 1) % polygon.length];
@@ -24,14 +24,15 @@ function lineSpan(polygon, offset) {
   return [min, max];
 }
 
-function insetGrain(polygon, margin) {
+export function insetGrain(polygon, margin) {
   let inset = polygon;
   for (let i = 0; i < polygon.length && inset.length; i++) {
     const [ax, ay] = polygon[i], [bx, by] = polygon[(i + 1) % polygon.length];
     const dx = bx - ax, dy = by - ay;
     const length = Math.hypot(dx, dy);
     if (length < EPS) continue;
-    const distance = ([x, y]) => (dx * (y - ay) - dy * (x - ax)) / length - margin;
+    const insetDistance = Array.isArray(margin) ? margin[i] : margin;
+    const distance = ([x, y]) => (dx * (y - ay) - dy * (x - ax)) / length - insetDistance;
     const clipped = [];
     let before = inset.at(-1), prev = distance(before);
     for (const point of inset) {
@@ -158,7 +159,7 @@ export function planPrint(model, width) {
   }
   const height = width / 2;
   const gap = strandGap(width);
-  const pitch = height + (trackCount ? gap : 0);
+  const pitch = height;
   const stackHeight = height + (layers.length - 1) * pitch;
   if (!Number.isFinite(stackHeight)) return null;
   return { width, height, gap, pitch, stackHeight, layers };
