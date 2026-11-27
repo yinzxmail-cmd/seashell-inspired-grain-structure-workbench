@@ -1,28 +1,60 @@
 # Seashell-Inspired Grain Structure Workbench
 
-A browser-based tool for generating, viewing, and exporting layered hexagonal grain structures inspired by seashells.
+**[Open the live workbench](https://yinzxmail-cmd.github.io/seashell-inspired-grain-structure-workbench/)**
 
-## Live demo
+Design layered hexagonal grain structures inspired by seashell microstructures. The workbench lets you set grain orientations, experiment with layer offsets, inspect the resulting filament geometry in 3D, and export the strand stack for slicing. It runs entirely in the browser.
 
-[Open the Workbench](https://yinzxmail-cmd.github.io/seashell-inspired-grain-structure-workbench/)
+## Quick start
 
-## Getting started
+1. Under **Geometry**, set the specimen length, width, and hexagon edge length in millimeters. A three-grain unit can combine the fixed orientations 30°, 90°, and 150°.
+2. Choose a programming mode, then set the layer count under **In-layer Layout**.
+3. Under **Layer Stacking**, choose a preset or enter an offset sequence using α, β, and γ. A custom sequence can be specified for every layer or repeated as a cycle.
+4. Drag to rotate, scroll to zoom, or right-drag to pan. On a touchscreen, drag with one finger to rotate, pinch to zoom, and drag with two fingers to pan. **Reset** restores the default view.
+5. Choose **Export** and select a mesh or data format.
 
-1. Open the live demo or download the repository and open `index.html` in a browser. The 3D bundle is included, so both methods work without installing dependencies. If you open a copy of `index.html` by itself, the original SVG views are available.
-2. In **Geometry**, enter the sample dimensions and hexagon edge length. Edit the three orientations within each cell pattern.
-3. In **In-layer Layout**, specify the total layers and pattern sequences. In **Layer Stacking**, select ααα or αβγ, or enter a custom sequence using α, β, and γ.
-4. In **3D**, drag with the left mouse button to rotate, scroll to zoom, and drag with the right mouse button to pan. Click **Reset** to fit the stack and restore its default angle. Selecting a deeper layer fades the layers above it. The 3D view shows a small gap between layers for readability.
-5. Switch to **Isometric** or **Top** for the original SVG views, where drag pans and scroll zooms. Export either current SVG view, use **Export Isometric SVG** in 3D, or download a CSV of cell positions and clipped outlines from any view.
+## Programming modes
 
-The 3D view requires WebGL 2. If the graphics context is lost, the workbench restores the latest valid model when the browser restores WebGL. Use **Retry 3D** to restart the renderer or switch to an SVG view.
+| Mode | What you edit |
+| --- | --- |
+| **Point Programming** | **Repeat units** tiles the configured three-grain units. **Custom** lets you select a grain and override its angle on that layer. |
+| **Line Programming** | Grains in a column on the selected layer share one angle. Pick a layer and column in **In-layer Layout**, or click a grain to highlight its column. Keep the layers independent or repeat column templates over a specified cycle. |
+| **Plane Programming** | Build a pattern sequence for the first layer. **Repeat units** tiles the sequence, while **Custom** lets you override a grain at the corresponding position in every layer. Each layer then uses its own stacking offset. |
 
-## Development
+Sample dimensions are shared across all three modes. Each mode retains its layer and stacking settings while you switch between modes in the same session. In a custom editing mode, **Clear** or Esc removes the current selection.
 
-Run `npm ci` to install the pinned development dependencies. Run `npm run build` after editing `src/grain-3d.js` and commit the regenerated `grain-3d.bundle.js` with the source so the static site and local copies can load 3D.
+## Preview and geometry
 
-Run `npx playwright install chromium` and `npm test` to run the browser tests. To use an existing Chromium-based browser, set `GRAIN_TEST_CHROMIUM` to the browser executable and run `npm test`.
+- **Printed strands** shows the complete stack. **Printed layer** isolates the selected layer. **Solid grains** shows the underlying hexagons.
+- The default deposited strand width is **0.60 mm**. Strands retain their full width at cell boundaries. Their flattened cross-section has rounded sides and planar end faces. [Slic3r flow model](https://manual.slic3r.org/advanced/flow-math)
+- The minimum separation is **10% of the strand width**, or **0.06 mm** at the default. It applies between neighboring strands, across grain boundaries, and between layers. Dashed gray marks indicate uncovered areas.
+- The 3D view uses WebGL 2. If the renderer fails, an SVG preview is shown. **Retry 3D** restarts the renderer.
 
-## References
+## Export formats
 
-- Interface inspiration: [Pretty Lattice](https://github.com/songfeitong/pretty-lattice).
-- Structural inspiration: [Yu et al., Nature Communications (2024)](https://doi.org/10.1038/s41467-024-53850-w).
+| Format | Contents |
+| --- | --- |
+| **STL** | Binary mesh of the complete strand stack. Select millimeters when importing if your slicer asks for a unit. |
+| **3MF** | Mesh of the complete strand stack with millimeters specified in the file. |
+| **CSV** | Grain centers, orientations, layer offsets, and clipped outlines. |
+| **SVG** | A projected preview of the specimen. |
+
+STL and 3MF preserve the strand gaps and layer offsets. The upper strands can be suspended because the strands are separate. Check the slicer's support settings, toolpaths, and minimum feature resolution before printing.
+
+## Run locally or develop
+
+Download the repository and open `index.html` in a browser. Keep `grain-3d.bundle.js` beside it for 3D and mesh export.
+
+```sh
+npm ci
+npm run build
+npx playwright install chromium
+npm test
+```
+
+When editing the 3D or export modules, rebuild `grain-3d.bundle.js` before publishing. To test against an installed Chromium-based browser, set `GRAIN_TEST_CHROMIUM` to its executable path and run `npm test`.
+
+## References and dependencies
+
+- Structural inspiration from [Yu et al., Nature Communications (2024)](https://doi.org/10.1038/s41467-024-53850-w).
+- Interface inspiration from [Pretty Lattice](https://github.com/songfeitong/pretty-lattice).
+- 3D rendering uses Three.js. ZIP packaging for 3MF uses fflate. See the [Three.js license](THREE-LICENSE.txt) and [fflate license](FFLATE-LICENSE.txt).

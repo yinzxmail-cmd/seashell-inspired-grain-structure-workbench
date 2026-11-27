@@ -1,9 +1,17 @@
 import {
   AmbientLight, BufferGeometry, Color, DataTexture, DirectionalLight, Float32BufferAttribute,
-  Group, LinearFilter, LinearMipmapLinearFilter, Mesh,
-  MeshLambertMaterial, PerspectiveCamera, RepeatWrapping, Scene, Vector3, WebGLRenderer,
+  Group, LineBasicMaterial, LinearFilter, LinearMipmapLinearFilter, Mesh,
+  MeshLambertMaterial, MeshPhongMaterial, PerspectiveCamera, Raycaster,
+  RepeatWrapping, Scene, Vector2, Vector3, WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { pickCell } from "./cell-picking.mjs";
+import { addPrintLayers, printShadowMaterial } from "./print-mesh.mjs";
+export { planPrint } from "./print-paths.mjs";
+export { exportSTL, export3MF } from "./model-export.mjs";
 
 const THICKNESS = 0.49;
 // A small display gap keeps touching layer faces legible from oblique views.
@@ -75,11 +83,11 @@ function layerGeometry(cells, layer, model, colors, height, scale) {
 
 function disposeModel(group) {
   group.removeFromParent();
-  for (const mesh of group.children) mesh.geometry.dispose();
+  group.traverse(object => object.geometry?.dispose());
   group.clear();
 }
 
-export function createPreview(host, palette, onStatus) {
+export function createPreview(host, palette, onStatus, onCellPicked) {
   const colors = Object.fromEntries(Object.entries(palette).map(([angle, color]) => {
     const radians = Number(angle) * Math.PI / 180;
     return [angle, { fill: new Color(color.fill), wall: new Color(color.wall),
@@ -87,16 +95,23 @@ export function createPreview(host, palette, onStatus) {
   }));
   const scene = new Scene();
   const camera = new PerspectiveCamera(35, 1, 0.05, 30);
-  const home = new Vector3(1, 0.94, 1.13).normalize();
-  camera.position.copy(home).multiplyScalar(4);
+  const solidHome = new Vector3(1, 0.94, 1.13).normalize();
+  const printHome = new Vector3(0.06, 0.37, 1).normalize();
+  camera.position.copy(printHome).multiplyScalar(4);
   const target = new Vector3();
   const offset = new Vector3();
+  const raycaster = new Raycaster();
+  const pointer = new Vector2();
   const key = new DirectionalLight(0xffffff, 1.55);
   key.position.set(-2, 4, 3);
-  scene.add(new AmbientLight(0xffffff, 1.15), key);
+  const printFill = new DirectionalLight(0xfff3df, 0.7);
+  printFill.position.set(1, 3, -3);
+  scene.add(new AmbientLight(0xffffff, 1.15), key, printFill);
 
-  let renderer, controls, canvas, group, materials;
-  let latest, builtModel, selected = 0, appliedLayer = -1;
+  let renderer, controls, canvas, group, materials, stack;
+  let latest, latestPrint, builtModel, builtPrint, selected = 0, appliedLayer = -1;
+  let selectedCell = null, outlinedCell = null, outline, press;
+  let isolate = false, appliedIsolation = false;
   let visible = false, lost = false, failed = false, frame = null;
   let width = 0, height = 0, pixelRatio = 0, fitDistance = 0;
   let status;
@@ -119,13 +134,86 @@ export function createPreview(host, palette, onStatus) {
     }
   }
 
+  function dropOutline() {
+    if (outline) {
+      outline.removeFromParent();
+      outline.geometry.dispose();
+      outline = null;
+    }
+    outlinedCell = null;
+  }
+
+  function drawOutline() {
+    dropOutline();
+    if (!selectedCell) return;
+    const { top, pitch, scale } = stack;
+    const cells = Array.isArray(selectedCell) ? selectedCell : [selectedCell];
+    const positions = [];
+    for (const { points, layer } of cells) {
+      const y = (top - (layer - 1) * pitch) * scale;
+      for (let i = 0; i < points.length; i++) {
+        const [x, z] = points[i], [nextX, nextZ] = points[(i + 1) % points.length];
+        if (x === nextX && z === nextZ) continue;
+        positions.push((x - builtModel.width / 2) * scale, y, (z - builtModel.height / 2) * scale,
+          (nextX - builtModel.width / 2) * scale, y, (nextZ - builtModel.height / 2) * scale);
+      }
+    }
+    const geometry = new LineSegmentsGeometry().setPositions(positions);
+    outline = new LineSegments2(geometry, materials.outline[0]);
+    outline.renderOrder = 2;
+    scene.add(outline);
+    outlinedCell = selectedCell;
+  }
+
+  function pointerDown(event) {
+    press = event.isPrimary && event.button === 0
+      ? { id: event.pointerId, x: event.clientX, y: event.clientY } : null;
+  }
+
+  function pointerMove(event) {
+    if (press?.id === event.pointerId && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 5) {
+      press = null;
+    }
+  }
+
+  function pointerUp(event) {
+    pointerMove(event);
+    const tapped = press?.id === event.pointerId;
+    press = null;
+    if (!tapped || status !== "ready" || builtModel !== latest || appliedLayer < 0) return;
+    const rect = canvas.getBoundingClientRect();
+    pointer.set(2 * (event.clientX - rect.left) / rect.width - 1,
+      1 - 2 * (event.clientY - rect.top) / rect.height);
+    camera.updateMatrixWorld();
+    raycaster.setFromCamera(pointer, camera);
+    const { origin, direction } = raycaster.ray;
+    const { scale } = stack;
+    const ray = {
+      origin: { x: origin.x / scale + builtModel.width / 2, y: origin.y / scale,
+        z: origin.z / scale + builtModel.height / 2 },
+      direction,
+    };
+    const cell = pickCell(builtModel.grids, ray, { ...stack, active: appliedLayer, isolated: appliedIsolation });
+    onCellPicked(cell, builtModel);
+  }
+
+  function cancelPress() { press = null; }
+
+  const pointerEvents = {
+    pointerdown: pointerDown, pointermove: pointerMove, pointerup: pointerUp,
+    pointercancel: cancelPress, lostpointercapture: cancelPress,
+  };
+
   function releaseModel() {
+    dropOutline();
     if (group) disposeModel(group);
-    group = builtModel = null;
+    group = builtModel = builtPrint = null;
     if (materials) {
-      materials.opaque.map.dispose();
-      materials.opaque.dispose();
-      materials.faded.dispose();
+      materials.solid[0].map.dispose();
+      materials.shadow[0].alphaMap.dispose();
+      for (const variants of Object.values(materials)) {
+        for (const material of variants) material.dispose();
+      }
       materials = null;
     }
   }
@@ -158,6 +246,7 @@ export function createPreview(host, palette, onStatus) {
     if (canvas) {
       canvas.removeEventListener("webglcontextlost", contextLost);
       canvas.removeEventListener("webglcontextrestored", contextRestored);
+      for (const [type, handler] of Object.entries(pointerEvents)) canvas.removeEventListener(type, handler);
       canvas.remove();
     }
     if (renderer) {
@@ -165,6 +254,7 @@ export function createPreview(host, palette, onStatus) {
       if (!renderer.getContext().isContextLost()) renderer.forceContextLoss();
     }
     renderer = controls = canvas = null;
+    cancelPress();
     lost = false;
     width = height = pixelRatio = 0;
   }
@@ -188,6 +278,7 @@ export function createPreview(host, palette, onStatus) {
       };
       canvas.addEventListener("webglcontextlost", contextLost);
       canvas.addEventListener("webglcontextrestored", contextRestored);
+      for (const [type, handler] of Object.entries(pointerEvents)) canvas.addEventListener(type, handler);
       host.prepend(canvas);
       controls = new OrbitControls(camera, canvas);
       controls.target.copy(target);
@@ -205,20 +296,35 @@ export function createPreview(host, palette, onStatus) {
   function replaceModel() {
     if (!materials) {
       const map = stripeTexture();
+      const fade = { transparent: true, opacity: 0.19, depthWrite: false };
       materials = {
-        opaque: new MeshLambertMaterial({ map, vertexColors: true }),
-        faded: new MeshLambertMaterial({
-          map, vertexColors: true, transparent: true, opacity: 0.19, depthWrite: false,
-        }),
+        solid: [
+          new MeshLambertMaterial({ map, vertexColors: true }),
+          new MeshLambertMaterial({ map, vertexColors: true, ...fade }),
+        ],
+        road: [
+          new MeshPhongMaterial({ color: 0xff9a12, specular: 0xa37443, shininess: 30 }),
+          new MeshPhongMaterial({ color: 0xff9a12, specular: 0xa37443, shininess: 30, ...fade }),
+        ],
+        gap: [
+          new LineBasicMaterial({ color: 0x34383e, transparent: true, opacity: 0.83, depthWrite: false }),
+          new LineBasicMaterial({ color: 0x34383e, ...fade, opacity: 0.1 }),
+        ],
+        shadow: [printShadowMaterial()],
+        outline: [new LineMaterial({ color: 0x0055d9, linewidth: 3, depthTest: false, depthWrite: false,
+          transparent: true })],
       };
     }
     const next = new Group();
-    const stackHeight = ((latest.grids.length - 1) * LAYER_PITCH + THICKNESS) * latest.edge;
+    const stackHeight = latestPrint
+      ? latestPrint.stackHeight
+      : ((latest.grids.length - 1) * LAYER_PITCH + THICKNESS) * latest.edge;
     // Normalizing to a unit bounding sphere preserves the camera as dimensions change.
     const scale = 2 / Math.hypot(latest.width, stackHeight, latest.height);
     try {
-      latest.grids.forEach((cells, layer) => {
-        next.add(new Mesh(layerGeometry(cells, layer, latest, colors, stackHeight, scale), materials.opaque));
+      if (latestPrint) addPrintLayers(next, latestPrint, latest, scale, materials);
+      else latest.grids.forEach((cells, layer) => {
+        next.add(new Mesh(layerGeometry(cells, layer, latest, colors, stackHeight, scale), materials.solid[0]));
       });
     } catch (error) {
       disposeModel(next);
@@ -226,15 +332,25 @@ export function createPreview(host, palette, onStatus) {
     }
     scene.add(next);
     if (group) disposeModel(group);
+    dropOutline();
     group = next;
+    stack = {
+      scale, top: stackHeight / 2,
+      pitch: latestPrint?.pitch ?? LAYER_PITCH * latest.edge,
+      thickness: latestPrint?.height ?? THICKNESS * latest.edge,
+    };
     builtModel = latest;
+    builtPrint = latestPrint;
+    printFill.visible = Boolean(latestPrint);
+    host.dataset.display = latestPrint ? "print" : "solid";
     appliedLayer = -1;
   }
 
   function resize(nextWidth, nextHeight, nextRatio) {
     const aspect = nextWidth / nextHeight;
     const halfFov = Math.atan(Math.tan(camera.fov * Math.PI / 360) * Math.min(aspect, 1));
-    const nextFit = 1.08 / Math.sin(halfFov);
+    const framing = latestPrint && aspect >= 1 ? 0.92 : 1.08;
+    const nextFit = framing / Math.sin(halfFov);
     const relativeDistance = fitDistance ? camera.position.distanceTo(controls.target) / fitDistance : 1;
     fitDistance = nextFit;
     width = nextWidth;
@@ -260,11 +376,28 @@ export function createPreview(host, palette, onStatus) {
       if (width !== nextWidth || height !== nextHeight || pixelRatio !== nextRatio) {
         resize(nextWidth, nextHeight, nextRatio);
       }
-      if (latest !== builtModel) replaceModel();
-      if (appliedLayer !== selected) {
-        group.children.forEach((mesh, i) => { mesh.material = i < selected ? materials.faded : materials.opaque; });
+      if (latest !== builtModel || latestPrint !== builtPrint) replaceModel();
+      if (appliedLayer !== selected || appliedIsolation !== isolate) {
+        group.children.forEach((layer, i) => {
+          if (layer === group.userData.shadow) {
+            layer.visible = !isolate;
+            return;
+          }
+          layer.visible = !isolate || i === selected;
+          const state = Number(i < selected);
+          layer.traverse(object => {
+            if (object.isLineSegments) {
+              object.material = materials.gap[state];
+              object.visible = i <= selected;
+            } else if (object.isMesh) {
+              object.material = (builtPrint ? materials.road : materials.solid)[state];
+            }
+          });
+        });
         appliedLayer = selected;
+        appliedIsolation = isolate;
       }
+      if (outlinedCell !== selectedCell) drawOutline();
       renderer.render(scene, camera);
       if (!renderer.getContext().isContextLost()) report("ready");
     } catch (error) {
@@ -278,6 +411,13 @@ export function createPreview(host, palette, onStatus) {
   observer.observe(host);
   window.addEventListener("resize", requestRender);
 
+  function resetView() {
+    controls?.target.set(0, 0, 0);
+    target.set(0, 0, 0);
+    camera.position.copy(latestPrint ? printHome : solidHome).multiplyScalar(fitDistance || 4);
+    controls?.update();
+  }
+
   return {
     show(next) {
       visible = next;
@@ -286,10 +426,19 @@ export function createPreview(host, palette, onStatus) {
       else if (!renderer && !failed) startRenderer();
       else requestRender();
     },
-    update(model, layer) {
-      if (latest === model && selected === layer) return;
+    update(model, layer, print = null, onlySelected = false, cell = null) {
+      if (latest === model && selected === layer && latestPrint === print &&
+        isolate === onlySelected && selectedCell === cell) return;
+      const changedDisplay = Boolean(latestPrint) !== Boolean(print);
       latest = model;
+      latestPrint = print;
       selected = layer;
+      selectedCell = cell;
+      isolate = onlySelected;
+      if (changedDisplay) {
+        width = height = fitDistance = 0;
+        resetView();
+      }
       requestRender();
     },
     zoom(factor) {
@@ -301,9 +450,7 @@ export function createPreview(host, palette, onStatus) {
     },
     reset() {
       if (!controls) return;
-      controls.target.set(0, 0, 0);
-      camera.position.copy(home).multiplyScalar(fitDistance || 4);
-      controls.update();
+      resetView();
       requestRender();
     },
     retry() {
@@ -316,7 +463,7 @@ export function createPreview(host, palette, onStatus) {
       window.removeEventListener("resize", requestRender);
       visible = false;
       stopRenderer();
-      latest = null;
+      latest = latestPrint = null;
     },
   };
 }

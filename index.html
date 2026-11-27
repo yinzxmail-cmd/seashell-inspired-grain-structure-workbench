@@ -32,66 +32,185 @@ header{height:62px}.mark{background:#333b79}.primary:hover{background:#303773}
 .section-title .presets{gap:4px}.section-title button{padding:5px 7px}
 @media(max-width:950px){.workspace{grid-template-columns:minmax(0,1fr) 298px;gap:13px}.sidebar .section{padding-inline:12px}.contents{padding-inline:11px}}
 @media(max-width:730px){.workspace{grid-template-columns:1fr}.tab-body{max-height:none;overflow:visible}}
-.layout{max-width:none;padding:0}.intro{display:none}.workspace{display:block;position:relative;min-height:calc(100dvh - 62px)}
+.program-directory{display:flex;align-items:center;gap:7px;height:46px;padding:0 18px;background:#fff;border-bottom:1px solid var(--line)}
+.program-directory button{padding:5px 12px;background:transparent;border-color:transparent;color:var(--muted)}
+.program-directory button[aria-pressed=true]{color:var(--blue);background:#f1f1fb;border-color:#daddf4}
+.layout{max-width:none;padding:0}.intro{display:none}.workspace{display:block;position:relative;min-height:calc(100dvh - 108px)}
 .viewer{border:0;border-radius:0;box-shadow:none}.viewer-head{position:absolute;left:18px;top:16px;z-index:2;padding:7px 9px 7px 12px;border:1px solid #e6ebf1;border-radius:10px;background:#fff;box-shadow:0 3px 14px #25365e0b}
-.viewer-head>strong{margin-right:8px}.stage{height:calc(100dvh - 62px);min-height:490px}
+.stage{height:calc(100dvh - 108px);min-height:490px}
 .stage svg{width:calc(100% - 326px)}.tools{left:18px;right:auto;top:auto;bottom:64px}
 .legend{position:absolute;left:18px;bottom:15px;z-index:1;max-width:calc(100% - 36px);padding:9px 12px;border:1px solid #e6ebf1;border-radius:9px;background:#fff;box-shadow:0 3px 14px #25365e0b}
 .sidebar{position:absolute;z-index:3;right:17px;top:16px;width:min(330px,calc(100% - 34px));max-height:calc(100% - 30px);box-shadow:0 12px 32px #20345715}
 .contents{padding-top:8px}.panel-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;padding-left:4px;font-size:.83rem;color:#445168}.panel-heading button{padding:4px 8px;font-size:.75rem;background:#f8f9fc}
-.tab-body{max-height:calc(100dvh - 185px)}.sidebar[data-collapsed=true]{width:auto}.sidebar[data-collapsed=true] .panel-heading{margin-bottom:0}
+.tab-body{max-height:calc(100dvh - 231px)}.sidebar[data-collapsed=true]{width:auto}.sidebar[data-collapsed=true] .panel-heading{margin-bottom:0}
 .sidebar[data-collapsed=true] [role=tablist],.sidebar[data-collapsed=true] .tab-body,.sidebar[data-collapsed=true] .error{display:none!important}
 body:has(.sidebar[data-collapsed=true]) .stage svg{width:100%}
 .source{margin:0;padding:9px 18px;border-top:1px solid var(--line);font-size:.75rem}
 .interactive{position:relative;width:calc(100% - 364px);height:100%}
 .interactive canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 .interactive canvas:active{cursor:grabbing}
+.stage:has(.interactive[data-display="print"]:not([hidden])){background:#fcfbf8}
+.legend:has(#printKey:not([hidden])) .angle-key{display:none}
 body:has(.sidebar[data-collapsed=true]) .interactive{width:100%}
 .render-notice{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:8px;padding:20px;text-align:center;pointer-events:none}
 .render-notice p{margin:0;padding:8px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:.85rem}
 .render-notice button{pointer-events:auto}
+.tools button{flex:none}
 .view-help{align-self:center;margin-left:6px;padding:5px 7px;background:#fcfdff;color:var(--muted);font-size:.75rem}
+.viewer-head{display:block}
+.view-row{display:flex;align-items:center;gap:13px}
+.view-row>strong{font-size:.92rem}
+.print-tools{display:flex;align-items:end;flex-wrap:wrap;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.print-tools label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.print-tools select,.print-tools input{width:auto;font-size:.8rem;padding:4px 6px}
+.print-tools input{width:68px}
+.print-error{flex-basis:100%;margin:0;color:#9b2c3b;font-size:.8rem}
+.cell-tools{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:.8rem}
+.cell-tools span{color:#0055d9;font-weight:650;white-space:nowrap}
+.cell-tools label{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.cell-tools select,.cell-tools button{width:auto;padding:4px 7px;font-size:.78rem}
+.gap-mark{display:inline-block;width:14px;border-top:2px dashed #34383e}
+#printNote{font-variant-numeric:tabular-nums}
+.column-editor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.column-editor label:last-child{grid-column:1/-1}
+.export-menu{position:relative;z-index:5}
+.export-menu summary{display:block;list-style:none;cursor:pointer;border:1px solid var(--blue);border-radius:8px;background:var(--blue);color:#fff;padding:8px 13px;font-size:.85rem;font-weight:650}
+.export-menu summary::-webkit-details-marker{display:none}
+.export-menu summary:focus-visible{outline:2px solid #5362e9;outline-offset:2px}
+.export-options{position:absolute;top:calc(100% + 6px);right:0;display:grid;gap:3px;min-width:156px;padding:5px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 18px #2028391a}
+.export-options button{text-align:left;border-color:transparent;padding:6px 9px;white-space:nowrap}
+.export-options button:hover{background:#f1f1fb}
+.export-options #exportError{max-width:210px;padding:2px 8px 5px;color:#9b2c3b;font-size:.78rem}
+.stage #canvas{position:absolute;inset:0}
+.touch-help{display:none}
+@media(pointer:coarse){
+  .mouse-help{display:none}
+  .touch-help{display:inline}
+}
 @media(max-width:950px){
   .sidebar{width:min(295px,calc(100% - 34px))}.stage svg{width:calc(100% - 278px)}
   .interactive{width:calc(100% - 329px)}
   .contents [role=tablist] button{font-size:.71rem}
 }
 @media(max-width:850px){
-  .viewer-head{left:10px;top:10px}.viewer-head>strong{display:none}.viewer-actions{gap:5px}
+  .program-directory{padding-inline:10px}
+  .viewer-head{left:10px;top:10px}.view-row>strong{display:none}.viewer-actions{gap:5px}
   .sidebar{top:57px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 133px)}
-  .tab-body{max-height:calc(100dvh - 230px);min-height:0;overflow:auto}
+  .workspace:has(#cellTools:not([hidden])){--cell-tools-offset:42px}
+  .workspace:has(#printTools:not([hidden])) .sidebar{top:calc(112px + var(--cell-tools-offset, 0px));max-height:calc(100% - 188px - var(--cell-tools-offset, 0px))}
+  .tab-body{max-height:calc(100dvh - 276px);min-height:0;overflow:auto}
   .stage svg,.interactive{width:100%}.legend{left:10px;bottom:10px;gap:6px 12px;max-width:calc(100% - 20px)}
   .tools{left:10px;bottom:76px}
+  .viewer:has(#printTools:not([hidden])) .tools{bottom:102px}
   .view-help,.tabs button{margin-left:0;padding-inline:7px}
 }
 @media(max-width:480px){
+  .program-directory{gap:4px;padding-inline:8px}
+  .program-directory button{flex:1;min-width:0;padding:5px 4px;font-size:.72rem;line-height:1.15}
   .brand{font-size:.8rem;gap:8px}.mark{flex:0 0 28px;height:28px;font-size:21px}
-  header nav{gap:5px}header nav button{font-size:.74rem;padding:6px 7px}
+  header nav{flex-shrink:0;gap:5px}
+  header nav button{min-height:38px;font-size:.74rem;padding:6px 8px;white-space:nowrap}
+  .export-menu summary{display:flex;align-items:center;min-height:38px;padding:6px 8px;font-size:.78rem}
+  .viewer-head{padding:6px;max-width:calc(100% - 20px)}
+  .viewer-actions{gap:5px}.layer-control{gap:4px}
+  .layer-control select{padding-inline:5px;font-size:.8rem}
+  .print-tools{display:grid;grid-template-columns:auto 1fr;gap:6px 11px}
+  .print-tools label{display:grid;justify-items:start;font-size:.72rem;gap:3px}
+  .print-tools input{width:64px}
+  .print-error{grid-column:1/-1}
+  .viewer:has(#printTools:not([hidden])) .tools{bottom:124px}
+  .cell-tools{gap:7px;font-size:.73rem}
+  .cell-tools label{font-size:.73rem}
+  .workspace:has(#printTools:not([hidden])) .sidebar{top:calc(142px + var(--cell-tools-offset, 0px));max-height:calc(100% - 208px - var(--cell-tools-offset, 0px))}
+  .workspace:has(#printTools:not([hidden]) #printError:not([hidden])) .sidebar{top:calc(178px + var(--cell-tools-offset, 0px));max-height:calc(100% - 244px - var(--cell-tools-offset, 0px))}
+}
+@media(max-width:350px){
+  header{padding-inline:10px;gap:8px}
+  header nav button{padding-inline:6px}
+  .brand{font-size:.75rem;line-height:1.2}
+  .tabs button{padding-inline:4px}
 }
 </style>
-<header><div class="brand"><span class="mark" aria-hidden="true">⬡</span><div>Seashell-Inspired Grain Structure Workbench</div></div><nav aria-label="Export"><button id="csv">Export CSV</button><button id="svg" class="primary">Export SVG</button></nav></header>
+<header>
+  <div class="brand"><span class="mark" aria-hidden="true">⬡</span><div>Seashell-Inspired Grain Structure Workbench</div></div>
+  <nav aria-label="Export">
+    <details id="exportMenu" class="export-menu">
+      <summary>Export</summary>
+      <div class="export-options">
+        <button id="export-stl" type="button">STL (.stl)</button>
+        <button id="export-3mf" type="button">3MF (.3mf)</button>
+        <button id="csv" type="button">CSV (.csv)</button>
+        <button id="svg" type="button">SVG (.svg)</button>
+        <p id="exportError" role="alert" hidden></p>
+      </div>
+    </details>
+  </nav>
+</header>
+<nav class="program-directory" aria-label="Programming modes">
+  <button type="button" data-program="point" aria-pressed="true">Point Programming</button>
+  <button type="button" data-program="line" aria-pressed="false">Line Programming</button>
+  <button type="button" data-program="face" aria-pressed="false">Plane Programming</button>
+</nav>
 <main class="layout">
 <div class="intro"><div><h1>Bioinspired Grain Structure</h1><p>Design cell orientations, repeat patterns, and offset layers.</p></div></div>
 <div class="workspace">
 <section class="panel viewer" aria-label="Structure Preview">
-<div class="viewer-head"><strong>Structure Preview</strong><div class="viewer-actions"><label class="layer-control">Layer<select id="layer"></select></label><div class="tabs" role="group" aria-label="Preview view"><button type="button" id="three" aria-pressed="false" hidden>3D</button><button type="button" id="stacked" aria-pressed="true">Isometric</button><button type="button" id="single" aria-pressed="false">Top</button></div></div></div>
+<div class="viewer-head">
+  <div class="view-row"><strong>Structure Preview</strong><label class="layer-control">Layer<select id="layer"></select></label></div>
+  <div class="print-tools" id="printTools" hidden>
+    <label>Display<select id="renderStyle"><option value="print">Printed strands</option><option value="layer">Printed layer</option><option value="solid">Solid grains</option></select></label>
+    <label id="strandControl" title="Width of the deposited strand in the XY plane">Strand diameter / mm<input id="strandWidth" type="number" min="0.01" step="any" value="0.6"></label>
+    <p id="printError" class="print-error" role="alert" hidden></p>
+  </div>
+  <div class="cell-tools" id="cellTools" hidden>
+    <span id="cellInfo" aria-live="polite"></span>
+    <label>Cell angle <select id="cellAngle"><option value="30">30°</option><option value="90">90°</option><option value="150">150°</option></select></label>
+    <button type="button" id="clearCell" aria-label="Clear selection">Clear</button>
+  </div>
+</div>
 <div class="stage">
   <svg id="canvas" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hexagonal grain structure"></svg>
   <div class="interactive" id="interactive" hidden>
     <div id="renderNotice" class="render-notice" hidden><p id="renderStatus" role="status"></p><button type="button" id="retry3d" hidden>Retry 3D</button></div>
   </div>
-  <div class="tools"><button id="minus" aria-label="Zoom out">−</button><button id="plus" aria-label="Zoom in">+</button><button id="fit">Reset</button><span id="viewHelp" class="view-help" hidden>Drag to rotate · Scroll to zoom · Right-drag to pan</span></div>
+  <div class="tools">
+    <button id="minus" aria-label="Zoom out">−</button><button id="plus" aria-label="Zoom in">+</button><button id="fit">Reset</button>
+    <span id="viewHelp" class="view-help" hidden><span class="mouse-help">Drag to rotate · Scroll to zoom · Right-drag to pan</span><span class="touch-help">One finger to rotate · Pinch to zoom · Two fingers to pan</span><span id="programHelp"> · Select a grain to edit its angle</span></span>
+  </div>
 </div>
-<div class="legend"><span><i class="sw" style="background:#7463bc"></i>30°</span><span><i class="sw" style="background:#368f8b"></i>90°</span><span><i class="sw" style="background:#d18162"></i>150°</span><span id="stats" class="stats" aria-live="polite"></span></div>
+<div class="legend"><span class="angle-key"><i class="sw" style="background:#7463bc"></i>30°</span><span class="angle-key"><i class="sw" style="background:#368f8b"></i>90°</span><span class="angle-key"><i class="sw" style="background:#d18162"></i>150°</span><span id="printKey" hidden><i class="sw" style="background:#ff900d"></i>30° · 90° · 150°</span><span id="gapLegend" hidden><i class="gap-mark"></i>Unfilled gap</span><span id="stats" class="stats" aria-live="polite"></span><span id="printNote" aria-live="polite" hidden></span></div>
 </section>
 <form class="panel sidebar" id="controls" data-collapsed="false">
 <div class="contents"><div class="panel-heading"><strong>Parameters</strong><button type="button" id="togglePanel" aria-expanded="true">Hide</button></div><div role="tablist" aria-label="Parameter tabs"><button type="button" role="tab" id="tab-geometry" aria-controls="panel-geometry" aria-selected="true">Geometry</button><button type="button" role="tab" id="tab-intralayer" aria-controls="panel-intralayer" aria-selected="false" tabindex="-1">In-layer Layout</button><button type="button" role="tab" id="tab-interlayer" aria-controls="panel-interlayer" aria-selected="false" tabindex="-1">Layer Stacking</button></div></div>
 <div class="tab-body" id="panel-geometry" role="tabpanel" aria-labelledby="tab-geometry">
 <section class="section" id="geometry"><h2>Sample Dimensions</h2><div class="grid"><label>Length / mm<input id="width" type="number" min="1" max="250" step="any" value="35" required></label><label>Width / mm<input id="height" type="number" min="1" max="250" step="any" value="24" required></label><label>Cell edge / mm<input id="edge" type="number" min=".25" max="50" step="any" value="2" required></label></div></section>
-<section class="section"><h2>Cell Patterns</h2><div class="style-tabs" role="group" aria-label="Cell pattern tabs"><button type="button" data-style="1" aria-pressed="true">Pattern 1</button><button type="button" data-style="2" aria-pressed="false">Pattern 2</button><button type="button" data-style="3" aria-pressed="false">Pattern 3</button></div><div id="patterns"></div><div class="unit-card"><span id="unitLabel">Pattern 1 preview</span><svg id="unit" role="img" aria-label="Three-cell pattern preview"></svg></div></section>
+<section class="section" id="patternSettings"><h2>Cell Patterns</h2><div class="style-tabs" role="group" aria-label="Cell pattern tabs"><button type="button" data-style="1" aria-pressed="true">Pattern 1</button><button type="button" data-style="2" aria-pressed="false">Pattern 2</button><button type="button" data-style="3" aria-pressed="false">Pattern 3</button></div><div id="patterns"></div><div class="unit-card"><span id="unitLabel">Pattern 1 preview</span><svg id="unit" role="img" aria-label="Three-cell pattern preview"></svg></div></section>
 </div>
 <div class="tab-body" id="panel-intralayer" role="tabpanel" aria-labelledby="tab-intralayer" hidden>
-<section class="section"><h2>In-layer Layout</h2><label>Total layers<input id="totalLayers" type="number" min="1" max="24" step="1" value="3" required></label><div class="mode-row" role="group" aria-label="In-layer sequence mode"><button type="button" id="innerDirect" aria-pressed="true">No repeat</button><button type="button" id="innerCycle" aria-pressed="false">Repeat</button></div><label id="innerCountLabel" hidden>Sequences per cycle<input id="innerCount" type="number" min="1" max="24" value="3" required disabled></label><button type="button" id="addSequence" class="spaced">＋ Add sequence</button><div id="sequences" class="spaced"></div><p id="sequenceNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">Use pattern numbers 1, 2, or 3, for example 1 3 2. Each sequence tiles its layer.</p></section>
+<section class="section"><h2>In-layer Layout</h2><label>Total layers<input id="totalLayers" type="number" min="1" max="24" step="1" value="3" required></label>
+<fieldset id="pointLayout">
+  <div class="mode-row" role="group" aria-label="Point programming layout"><button type="button" id="pointUnitCycle" data-arrangement="cycle" aria-pressed="false">Repeat units</button><button type="button" id="pointUnitCustom" data-arrangement="custom" aria-pressed="true">Custom</button></div>
+  <div class="mode-row" role="group" aria-label="In-layer sequence mode"><button type="button" id="innerDirect" aria-pressed="true">No repeat</button><button type="button" id="innerCycle" aria-pressed="false">Repeat</button></div>
+  <label id="innerCountLabel" hidden>Sequences per cycle<input id="innerCount" type="number" min="1" max="24" value="3" required disabled></label>
+  <button type="button" id="addSequence" class="spaced">＋ Add sequence</button><div id="sequences" class="spaced"></div>
+  <p id="sequenceNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">Use pattern numbers 1, 2, or 3, for example 1 3 2. In Custom mode, select a grain to override its angle.</p>
+</fieldset>
+<fieldset id="lineLayout" hidden disabled>
+  <div class="mode-row" role="group" aria-label="Column template mode"><button type="button" id="lineDirect" aria-pressed="true">Independent layers</button><button type="button" id="lineRepeat" aria-pressed="false">Repeat templates</button></div>
+  <label id="lineCountLabel" hidden>Column templates per cycle<input id="lineCount" type="number" min="1" max="24" step="1" value="3" required disabled></label>
+  <div class="column-editor" id="lineEditor">
+    <label>Column layer<select id="lineLayer"></select></label>
+    <label>Column<select id="lineColumn"></select></label>
+    <label>Column angle<select id="lineAngle"><option value="30">30°</option><option value="90">90°</option><option value="150">150°</option></select></label>
+  </div>
+  <p id="lineNote" class="sub" aria-live="polite"></p>
+</fieldset>
+<fieldset id="faceLayout" hidden disabled>
+  <div class="mode-row" role="group" aria-label="Plane programming layout"><button type="button" id="faceUnitCycle" data-arrangement="cycle" aria-pressed="true">Repeat units</button><button type="button" id="faceUnitCustom" data-arrangement="custom" aria-pressed="false">Custom</button></div>
+  <label class="spaced">First-layer pattern sequence<input id="faceSequence" value="1 2 3" maxlength="45" spellcheck="false" required></label>
+  <p class="sub">Use pattern numbers 1, 2, or 3. Set their angles in Geometry. In Custom mode, selecting a grain edits that position in every layer.</p>
+</fieldset>
+</section>
 </div>
 <div class="tab-body" id="panel-interlayer" role="tabpanel" aria-labelledby="tab-interlayer" hidden>
 <section class="section"><div class="section-title"><h2>Layer Stacking</h2><div class="presets" role="group" aria-label="Stacking presets"><button type="button" data-preset="ααα" aria-pressed="false">ααα</button><button type="button" data-preset="αβγ" aria-pressed="false">αβγ</button><button type="button" data-preset="" aria-pressed="true">Custom</button></div></div><fieldset id="stackControls"><div class="mode-row" role="group" aria-label="Stacking sequence mode"><button type="button" id="stackDirect" aria-pressed="true">No repeat</button><button type="button" id="stackCycle" aria-pressed="false">Repeat</button></div><label id="stackCountLabel" hidden>Sequences per cycle<input id="stackCount" type="number" min="1" max="24" value="3" required disabled></label><label class="spaced">Stacking sequence<input id="stackOrder" value="α β γ" maxlength="95" spellcheck="false" required></label></fieldset><p id="stackNote" class="sub sequence-note" aria-live="polite"></p><p class="sub">Use only α, β, and γ, for example ααβ or α β γ. Spaces and commas are allowed. Layers with the same letter share an offset. α is the baseline.</p></section>
@@ -119,10 +238,25 @@ const viewer=$("canvas");
 const root3=Math.sqrt(3);
 const round=n=>+n.toFixed(5);
 let model, preview, updateFrame=null, mode="stacked", zoom=1, pan=[0,0], drag=null;
+let plannedModel, plannedWidth, printPlan, printFrame=null;
+const angleOverrides=new Map();
+const faceOverrides=new Map();
+const columnOverrides={direct:new Map(),cycle:new Map()};
+const arrangements={point:"custom",face:"cycle"};
+let selectedCellId=null;
+let program="point",lineMode="direct",selectedColumn=null;
+let columnEditorModel,columnEditorLayer;
 let innerMode="direct",stackMode="direct",preset="",selectedStyle="1";
+const customEditing=()=>arrangements[program]==="custom";
 
 $("patterns").innerHTML=keys.map(key=>'<div class="style-row" id="style-row-'+key+'" '+(key==="1"?"":"hidden")+'>'+
   schemes[key].map((angle,i)=>'<label>Position '+slots[i]+'<select id="style-'+key+'-'+i+'" aria-label="Pattern '+key+' Position '+slots[i]+'">'+Object.keys(palette).map(option=>'<option value="'+option+'" '+(String(angle)===option?'selected':'')+'>'+option+'°</option>').join('')+'</select></label>').join('')+'</div>').join('');
+const patternControls=Array.from($("patterns").querySelectorAll("select"));
+const defaultProgramSettings={
+  total:"3",layer:"0",stackMode:"direct",stackCount:"3",stacks:{...stacks},
+  preset:"αβγ",angles:patternControls.map(input=>input.value),panel:"tab-intralayer"
+};
+const programSettings=new Map();
 
 function showSequenceRows(){
   const list=$("sequences");
@@ -188,12 +322,19 @@ function clipPolygon(points,width,height){
 function build(){
   const width=+$("width").value,height=+$("height").value,edge=+$("edge").value;
   const total=+$("totalLayers").value;
-  const count=innerMode==="cycle"?+$("innerCount").value:entries.direct.length;
-  if(count>total) throw Error("The number of in-layer sequences cannot exceed the layer count.");
+  const point=program==="point",line=program==="line",face=program==="face";
+  const sequenceCount=innerMode==="cycle"?+$("innerCount").value:entries.direct.length;
+  const lineCount=lineMode==="cycle"?+$("lineCount").value:total;
+  if(point&&sequenceCount>total) throw Error("The number of in-layer sequences cannot exceed the layer count.");
+  if(line&&lineCount>total) throw Error("The number of column templates cannot exceed the layer count.");
   if(!$("controls").checkValidity()) throw Error("Enter valid dimensions, a layer count, and a sequence.");
-  const sequences=Array.from($("sequences").querySelectorAll("input"),input=>input.value.replace(/[\s,，、→-]/g,""));
-  if(sequences.some(sequence=>!/^[123]+$/.test(sequence))) throw Error("Each in-layer sequence must contain only pattern numbers 1, 2, and 3.");
-  const layers=Array.from({length:total},(_,i)=>innerMode==="cycle"?i%sequences.length:Math.min(i,sequences.length-1));
+  const inputs=point?Array.from($("sequences").querySelectorAll("input")):face?[$("faceSequence")]:[];
+  const sequences=inputs.map(input=>input.value.replace(/[\s,，、→-]/g,""));
+  if(sequences.some(sequence=>!/^[123]+$/.test(sequence))) throw Error("Use only pattern numbers 1, 2, and 3.");
+  const layers=Array.from({length:total},(_,i)=>{
+    if(line) return i%lineCount;
+    return point&&innerMode==="cycle"?i%sequences.length:Math.min(i,sequences.length-1);
+  });
   const layouts=getStack(total);
   const pitch=root3*edge;
   // A three-cell basis on the triangular lattice. These bases tile without overlap.
@@ -205,28 +346,52 @@ function build(){
   for(let row=-3;row<spanY;row++){
     for(let col=-3-Math.floor(row/2);col<spanX-Math.floor(row/2);col++){
       if((col-row)%3!==0) continue;
-      const points=basis.map(([dq,dr])=>[pitch*(col+dq+(row+dr)/2)+pitch/2,edge*(1+1.5*(row+dr))]);
+      const points=basis.map(([dq,dr])=>[
+        pitch*(col+dq+(row+dr)/2)+pitch/2,edge*(1+1.5*(row+dr)),2*(col+dq)+row+dr+1
+      ]);
       if(points.every(([x,y])=>x+pitch<0||x-pitch>width||y+2*edge<0||y-2*edge>height)) continue;
-      groups.push(points);
+      groups.push({row,col,points});
     }
   }
+  let faceAnchor=0;
   const grids=layers.map((sequenceIndex,layer)=>{
     const sequence=sequences[sequenceIndex];
     const letter=layouts[layer];
     const [dx,dy]=getOffset(letter,edge);
-    const clippedGroups=groups.map(points=>points.map(([x,y],slot)=>{
-      x+=dx;y+=dy;
-      return {x,y,slot,points:clipPolygon(polygon(x,y,edge),width,height)};
-    }).filter(c=>Math.abs(c.points.reduce((area,[x,y],i)=>{
-      const next=c.points[(i+1)%c.points.length];
-      return area+x*next[1]-y*next[0];
-    },0))>1e-8)).filter(cells=>cells.length);
-    return clippedGroups.flatMap((cells,group)=>{
-      const style=sequence[group%sequence.length];
-      return cells.map(c=>({...c,style,group:group+1,cycle:Math.floor(group/sequence.length)+1,slot:slots[c.slot],angle:+$("style-"+style+"-"+c.slot).value,layer:layer+1,letter,sequence:sequenceIndex+1}));
+    const clippedGroups=groups.map(({row,col,points},anchor)=>{
+      const cells=points.map(([x,y,column],slot)=>{
+        x+=dx;y+=dy;
+        const templateId=[row,col,slot].join(":");
+        return {id:layer+":"+templateId,templateId,x,y,column,slot,points:clipPolygon(polygon(x,y,edge),width,height)};
+      }).filter(c=>Math.abs(c.points.reduce((area,[x,y],i)=>{
+        const next=c.points[(i+1)%c.points.length];
+        return area+x*next[1]-y*next[0];
+      },0))>1e-8);
+      return {anchor,cells};
+    }).filter(group=>group.cells.length);
+    if(face&&layer===0) faceAnchor=clippedGroups[0]?.anchor??0;
+    return clippedGroups.flatMap(({anchor,cells},group)=>{
+      // Retain the same template phase at a lattice address after each layer is shifted and clipped.
+      const phase=face?anchor-faceAnchor:group;
+      const style=line?"":sequence[((phase%sequence.length)+sequence.length)%sequence.length];
+      return cells.map(c=>{
+        const baseAngle=line?[30,90,150][((c.column%3)+3)%3]:+$("style-"+style+"-"+c.slot).value;
+        const override=line?columnOverrides[lineMode].get(sequenceIndex+":"+c.column):
+          customEditing()?(point?angleOverrides.get(c.id):faceOverrides.get(c.templateId)):undefined;
+        return {...c,style,group:group+1,cycle:line?1:Math.floor(group/sequence.length)+1,slot:slots[c.slot],
+          baseAngle,angle:override??baseAngle,layer:layer+1,letter,sequence:sequenceIndex+1};
+      });
     });
   });
-  return {width,height,edge,layers,layouts,grids};
+  const columns=line?grids.map(cells=>{
+    const grouped=new Map();
+    for(const cell of cells){
+      if(!grouped.has(cell.column)) grouped.set(cell.column,[]);
+      grouped.get(cell.column).push(cell);
+    }
+    return new Map([...grouped].sort(([a],[b])=>a-b));
+  }):null;
+  return {program,width,height,edge,layers,layouts,grids,columns};
 }
 
 const coords=points=>points.map(p=>p.map(round).join(",")).join(" ");
@@ -236,7 +401,8 @@ function fillDefs(prefix,spacing){
 }
 
 function face(c,prefix,stroke){
-  return '<polygon points="'+coords(c.points)+'" fill="url(#'+prefix+c.angle+')" stroke="'+palette[c.angle].line+'" stroke-linejoin="round" stroke-width="'+stroke+'"><title>Pattern '+c.style+' · Position '+c.slot+' · '+c.angle+'°</title></polygon>';
+  const name=c.style?"Pattern "+c.style+" · Position "+c.slot:"Column cell";
+  return '<polygon points="'+coords(c.points)+'" fill="url(#'+prefix+c.angle+')" stroke="'+palette[c.angle].line+'" stroke-linejoin="round" stroke-width="'+stroke+'"><title>'+name+' · '+c.angle+'°</title></polygon>';
 }
 
 function showUnit(){
@@ -251,48 +417,125 @@ function showUnit(){
 }
 
 function render(){
-  if(!model) return;
+  if(model?.program!==program) return;
   const current=+$("layer").value||0;
-  if(mode==="three") preview.update(model,current);
-  else renderSvg(mode,zoom,pan);
   const {grids,layers,layouts}=model;
-  $("stats").textContent="Layer "+(current+1)+" of "+grids.length+" · Sequence "+(layers[current]+1)+" · Stack "+layouts[current]+" · "+grids[current].length+" cells";
+  const cell=!customEditing()||selectedCellId===null?null:grids[current].find(c=>c.id===selectedCellId);
+  selectedCellId=cell?.id??null;
+  $("cellTools").hidden=mode!=="three"||!cell;
+  if(cell){
+    $("cellInfo").textContent=program==="face"?"Shared cell · "+cell.group+cell.slot:"Layer "+cell.layer+" · "+cell.group+cell.slot;
+    $("cellAngle").value=String(cell.angle);
+  }
+  const column=program==="line"?showColumnEditor(current):null;
+  const sequenceLabel=program==="face"?"Layer 1 template":(program==="line"?"Column template ":"Sequence ")+(layers[current]+1);
+  $("stats").textContent="Layer "+(current+1)+" of "+grids.length+" · "+sequenceLabel+" · Stack "+layouts[current]+" · "+grids[current].length+" cells";
+  if(mode==="three") renderThree(current,column??cell);
+  if(mode!=="three"||$("interactive").dataset.status==="error") renderSvg(zoom,pan);
 }
 
-function renderSvg(viewMode,viewZoom,viewPan){
+function showColumnEditor(layer){
+  const columns=model.columns[layer];
+  if(columnEditorModel!==model||columnEditorLayer!==layer){
+    $("lineColumn").replaceChildren(...Array.from(columns.keys(),(column,i)=>new Option("Column "+(i+1),column)));
+    columnEditorModel=model;
+    columnEditorLayer=layer;
+  }
+  if(!columns.has(selectedColumn)) selectedColumn=[...columns.keys()][Math.floor(columns.size/2)]??null;
+  const cells=columns.get(selectedColumn);
+  $("lineLayer").value=layer;
+  $("lineColumn").value=selectedColumn;
+  $("lineAngle").disabled=!cells;
+  if(cells) $("lineAngle").value=String(cells[0].angle);
+  $("lineNote").textContent=lineMode==="cycle"
+    ?"Edits apply to all layers using column template "+(model.layers[layer]+1)+"."
+    :"Each column shares one angle within the selected layer.";
+  return cells??null;
+}
+
+function renderThree(layer,cell){
+  const style=$("renderStyle").value;
+  const printing=style!=="solid";
+  $("strandControl").hidden=$("printKey").hidden=$("gapLegend").hidden=$("printNote").hidden=!printing;
+  $("printError").hidden=true;
+  if(!printing){
+    preview.update(model,layer,null,false,cell);
+    return;
+  }
+  try{
+    const plan=getPrintPlan();
+    const count=plan.layers[layer].tracks.length;
+    $("printNote").textContent=count+" strands · "+round(plan.height)+" mm layer · "+round(plan.gap)+" mm gap";
+    preview.update(model,layer,plan,style==="layer",cell);
+  }catch(error){
+    $("printError").textContent=error.message;
+    $("printError").hidden=false;
+  }
+}
+
+function getPrintPlan(){
+  const diameter=$("strandWidth").valueAsNumber;
+  if(!Number.isFinite(diameter)||diameter<0.01) throw Error("Enter a strand diameter of at least 0.01 mm.");
+  if(plannedModel!==model||plannedWidth!==diameter){
+    printPlan=Grain3D.planPrint(model,diameter);
+    plannedModel=model;
+    plannedWidth=diameter;
+  }
+  if(!printPlan) throw Error("Too many print paths. Increase the strand diameter or reduce the sample size.");
+  return printPlan;
+}
+
+function selectCell(cell){
+  if(program==="line"){
+    if(!cell) return;
+    selectedColumn=cell.column;
+    $("layer").value=cell.layer-1;
+    switchPanel($("tab-intralayer"));
+    render();
+    return;
+  }
+  if(!customEditing()) return;
+  const id=cell?.id??null;
+  if(id===selectedCellId) return;
+  selectedCellId=id;
+  if(cell) $("layer").value=cell.layer-1;
+  render();
+}
+
+function renderSvg(viewZoom,viewPan){
   const {width,height,edge,grids}=model;
   const current=+$("layer").value||0;
-  const solid=viewMode==="stacked",thickness=edge*.49,step=thickness;
-  const matrix=solid?[.91,.24,-.41,.63]:[1,0,0,1];
+  const thickness=edge*.49,step=thickness;
+  const matrix=[.91,.24,-.41,.63];
   const project=([x,y],z=0)=>[matrix[0]*x+matrix[2]*y,matrix[1]*x+matrix[3]*y+z];
   const corners=[[0,0],[width,0],[width,height],[0,height]];
   const plane=corners.map(p=>project(p));
   const margin=Math.max(width,height)*.062;
   const minX=Math.min(...plane.map(p=>p[0]))-margin,minY=-margin;
   const w=Math.max(...plane.map(p=>p[0]))-minX+margin;
-  const h=Math.max(...plane.map(p=>p[1]))+2*margin+(solid?grids.length*step:0);
+  const h=Math.max(...plane.map(p=>p[1]))+2*margin+grids.length*step;
   viewer.setAttribute("viewBox",[minX+(w-w/viewZoom)/2+viewPan[0],minY+(h-h/viewZoom)/2+viewPan[1],w/viewZoom,h/viewZoom].join(" "));
-  const indices=solid?grids.map((_,i)=>i).reverse():[current];
+  const indices=grids.map((_,i)=>i).reverse();
   const stroke=round(edge*.024);
-  const shadow=solid?'<defs><filter id="depth-shadow" x="-30%" y="-40%" width="160%" height="180%"><feGaussianBlur stdDeviation="'+round(edge*.55)+'"/></filter></defs><polygon points="'+coords(corners.map(p=>project(p,grids.length*step+edge*.3)))+'" fill="#516584" opacity=".20" filter="url(#depth-shadow)"/>':"";
+  const shadow='<defs><filter id="depth-shadow" x="-30%" y="-40%" width="160%" height="180%"><feGaussianBlur stdDeviation="'+round(edge*.55)+'"/></filter></defs><polygon points="'+coords(corners.map(p=>project(p,grids.length*step+edge*.3)))+'" fill="#516584" opacity=".20" filter="url(#depth-shadow)"/>';
   viewer.innerHTML='<defs>'+fillDefs("face-",round(edge*.21))+'</defs>'+shadow+
     indices.map(i=>{
-      const z=solid?i*step:0;
+      const z=i*step;
       const cells=grids[i];
       // Coplanar top faces are followed by the next layer. Only forward-facing walls are visible.
-      const walls=solid?cells.map(c=>c.points.map((a,k)=>{
+      const walls=cells.map(c=>c.points.map((a,k)=>{
         const b=c.points[(k+1)%c.points.length];
         const u=project(a,z),v=project(b,z);
         if(v[0]>=u[0]-1e-8) return "";
         const color=palette[c.angle];
         return '<polygon points="'+coords([u,v,project(b,z+thickness),project(a,z+thickness)])+'" fill="'+(v[1]>u[1]?color.wall:color.shade)+'" stroke="'+color.shade+'" stroke-width="'+stroke+'"/>';
-      }).join("")).join(""):"";
-      return '<g opacity="'+(solid&&i<current?.19:1)+'">'+walls+
+      }).join("")).join("");
+      return '<g opacity="'+(i<current?.19:1)+'">'+walls+
         '<g transform="matrix('+matrix.join(" ")+' 0 '+z+')">'+cells.map(c=>face(c,"face-",stroke)).join("")+'</g></g>';
     }).join("");
 }
 
-function update(){
+function update(preferredLayer=$("layer").value){
   if(updateFrame!==null) cancelAnimationFrame(updateFrame);
   updateFrame=null;
   const total=+$("totalLayers").value;
@@ -303,44 +546,39 @@ function update(){
   try{
     showUnit();
     const next=build();
-    const old=+$("layer").value||0;
+    const old=+preferredLayer||0;
     model=next;
-    $("layer").innerHTML=model.layers.map((sequence,i)=>'<option value="'+i+'">Layer '+(i+1)+' · '+model.layouts[i]+'</option>').join("");
+    const layerOptions=model.layers.map((_,i)=>'<option value="'+i+'">Layer '+(i+1)+'</option>').join("");
+    $("layer").innerHTML=layerOptions;
+    if(program==="line") $("lineLayer").innerHTML=layerOptions;
     $("layer").value=Math.min(old,model.layers.length-1);
     $("error").hidden=true;
-    $("svg").disabled=$("csv").disabled=false;
+    setExportAvailability(true);
     render();
   }catch(err){
     $("error").hidden=false;
     $("error").textContent=err.message;
-    $("svg").disabled=$("csv").disabled=true;
+    setExportAvailability(false);
   }
 }
 
-function changeMode(next){
-  mode=next;
-  const interactive=mode==="three";
-  $("three").setAttribute("aria-pressed",interactive);
-  $("single").setAttribute("aria-pressed",mode==="single");
-  $("stacked").setAttribute("aria-pressed",mode==="stacked");
-  $("interactive").hidden=!interactive;
-  $("viewHelp").hidden=!interactive;
-  $("svg").textContent=interactive?"Export Isometric SVG":"Export SVG";
-  viewer.toggleAttribute("hidden",interactive);
-  preview?.show(interactive);
-  zoom=1;pan=[0,0];render();
+function setExportAvailability(valid){
+  $("csv").disabled=$("svg").disabled=!valid;
+  $("export-stl").disabled=$("export-3mf").disabled=!valid||!globalThis.Grain3D;
 }
 
 function save(filename,data,type){
   const link=document.createElement("a");
   const url=URL.createObjectURL(new Blob([data],{type}));
   link.href=url;link.download=filename;link.click();
+  $("exportMenu").open=false;
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 $("controls").addEventListener("submit",e=>e.preventDefault());
-$("controls").addEventListener("input",()=>{
-  if(updateFrame===null) updateFrame=requestAnimationFrame(update);
+$("controls").addEventListener("input",event=>{
+  if(event.target.closest("#lineEditor")) return;
+  if(updateFrame===null) updateFrame=requestAnimationFrame(()=>update());
 });
 function togglePanel(collapsed){
   $("controls").dataset.collapsed=String(collapsed);
@@ -374,6 +612,60 @@ directory.forEach((tab,index)=>{
     directory[next].focus({preventScroll:true});
   });
 });
+function switchProgram(next){
+  if(next===program) return;
+  programSettings.set(program,{
+    total:$("totalLayers").value,layer:$("layer").value,stackMode,stackCount:$("stackCount").value,
+    stacks:{...stacks,[stackMode]:$("stackOrder").value},preset,
+    cell:selectedCellId,column:selectedColumn,collapsed:$("controls").dataset.collapsed==="true",
+    angles:patternControls.map(input=>input.value),
+    panel:directory.find(tab=>tab.getAttribute("aria-selected")==="true").id
+  });
+  program=next;
+  const settings=programSettings.get(next)??defaultProgramSettings;
+  $("totalLayers").value=settings.total;
+  $("stackCount").value=settings.stackCount;
+  Object.assign(stacks,settings.stacks);
+  stackMode=settings.stackMode;
+  preset=settings.preset;
+  $("stackOrder").value=stacks[stackMode];
+  syncStackControls();
+  patternControls.forEach((input,i)=>{input.value=settings.angles[i]});
+  for(const entry of ["point","line","face"]){
+    $(entry+"Layout").hidden=$(entry+"Layout").disabled=entry!==next;
+  }
+  $("patternSettings").hidden=next==="line";
+  $("cellTools").hidden=true;
+  syncArrangement();
+  selectedCellId=settings.cell??null;
+  selectedColumn=settings.column??null;
+  for(const button of document.querySelectorAll("[data-program]")){
+    button.setAttribute("aria-pressed",button.dataset.program===next);
+  }
+  togglePanel(settings.collapsed??false);
+  switchPanel($(settings.panel));
+  update(settings.layer);
+}
+document.querySelectorAll("[data-program]").forEach(button=>{
+  button.onclick=()=>switchProgram(button.dataset.program);
+});
+function syncArrangement(){
+  $("programHelp").textContent=program==="line"?" · Select a grain to choose its column":
+    !customEditing()?"":program==="face"?" · Select a grain to edit its copies":" · Select a grain to edit its angle";
+  for(const button of $(program+"Layout").querySelectorAll("[data-arrangement]")){
+    button.setAttribute("aria-pressed",button.dataset.arrangement===arrangements[program]);
+  }
+}
+document.querySelectorAll("[data-arrangement]").forEach(button=>{
+  button.onclick=()=>{
+    const next=button.dataset.arrangement;
+    if(next===arrangements[program]) return;
+    arrangements[program]=next;
+    selectedCellId=null;
+    syncArrangement();
+    update();
+  };
+});
 $("addSequence").onclick=()=>{
   if(entries.direct.length>=+$("totalLayers").value)return;
   entries.direct.push("1 2 3");
@@ -391,14 +683,29 @@ function selectInner(next){
   showSequenceRows();
   update();
 }
-function selectStack(next){
-  stacks[stackMode]=$("stackOrder").value;
-  stackMode=next;
-  const cycling=next==="cycle";
+function syncStackControls(){
+  const cycling=stackMode==="cycle";
   $("stackDirect").setAttribute("aria-pressed",!cycling);
   $("stackCycle").setAttribute("aria-pressed",cycling);
   $("stackCountLabel").hidden=$("stackCount").disabled=!cycling;
+  $("stackControls").disabled=Boolean(preset);
+  $("stackControls").classList.toggle("locked",Boolean(preset));
+  document.querySelectorAll("[data-preset]").forEach(item=>item.setAttribute("aria-pressed",item.dataset.preset===preset));
+}
+function selectStack(next){
+  stacks[stackMode]=$("stackOrder").value;
+  stackMode=next;
   $("stackOrder").value=stacks[next];
+  syncStackControls();
+  update();
+}
+function selectLine(next){
+  lineMode=next;
+  const cycling=next==="cycle";
+  $("lineDirect").setAttribute("aria-pressed",!cycling);
+  $("lineRepeat").setAttribute("aria-pressed",cycling);
+  $("lineCountLabel").hidden=$("lineCount").disabled=!cycling;
+  if(cycling&&+$("lineCount").value>+$("totalLayers").value) $("lineCount").value=$("totalLayers").value;
   update();
 }
 $("innerDirect").onclick=()=>selectInner("direct");
@@ -406,16 +713,56 @@ $("innerCycle").onclick=()=>selectInner("cycle");
 $("innerCount").addEventListener("input",showSequenceRows);
 $("stackDirect").onclick=()=>selectStack("direct");
 $("stackCycle").onclick=()=>selectStack("cycle");
+$("lineDirect").onclick=()=>selectLine("direct");
+$("lineRepeat").onclick=()=>selectLine("cycle");
+$("lineLayer").onchange=()=>{
+  $("layer").value=$("lineLayer").value;
+  render();
+};
+$("lineColumn").onchange=()=>{
+  selectedColumn=+$("lineColumn").value;
+  render();
+};
+$("lineAngle").onchange=()=>{
+  if(model?.program!=="line") return;
+  const layer=+$("layer").value;
+  const cells=model.columns[layer].get(selectedColumn);
+  const angle=+$("lineAngle").value;
+  if(!cells||!Object.hasOwn(palette,angle)) return;
+  const key=model.layers[layer]+":"+selectedColumn;
+  if(angle===cells[0].baseAngle) columnOverrides[lineMode].delete(key);
+  else columnOverrides[lineMode].set(key,angle);
+  update();
+};
 document.querySelectorAll("[data-preset]").forEach(button=>button.onclick=()=>{
   preset=button.dataset.preset;
-  $("stackControls").disabled=Boolean(preset);
-  $("stackControls").classList.toggle("locked",Boolean(preset));
-  document.querySelectorAll("[data-preset]").forEach(item=>item.setAttribute("aria-pressed",item===button));
+  syncStackControls();
   update();
 });
-$("single").onclick=()=>changeMode("single");
-$("stacked").onclick=()=>changeMode("stacked");
-$("three").onclick=()=>changeMode("three");
+$("renderStyle").onchange=render;
+$("clearCell").onclick=()=>selectCell(null);
+document.addEventListener("keydown",event=>{
+  if(event.key!=="Escape") return;
+  if($("exportMenu").open){
+    $("exportMenu").open=false;
+    $("exportMenu").querySelector("summary").focus();
+  }else if(mode==="three"&&selectedCellId!==null) selectCell(null);
+});
+$("cellAngle").onchange=()=>{
+  if(!customEditing()) return;
+  const cell=model.grids[+$("layer").value].find(c=>c.id===selectedCellId);
+  if(!cell) return;
+  const angle=+$("cellAngle").value;
+  if(!Object.hasOwn(palette,angle)) return;
+  const overrides=program==="face"?faceOverrides:angleOverrides;
+  const id=program==="face"?cell.templateId:cell.id;
+  if(angle===cell.baseAngle) overrides.delete(id);
+  else overrides.set(id,angle);
+  update();
+};
+$("strandWidth").addEventListener("input",()=>{
+  if(printFrame===null) printFrame=requestAnimationFrame(()=>{printFrame=null;render()});
+});
 $("layer").onchange=render;
 function changeZoom(factor){
   if(mode==="three") preview.zoom(factor);
@@ -444,7 +791,7 @@ viewer.addEventListener("lostpointercapture",()=>drag=null);
 $("svg").onclick=()=>{
   if(updateFrame!==null) update();
   if($("svg").disabled) return;
-  if(mode==="three") renderSvg("stacked",1,[0,0]);
+  renderSvg(1,[0,0]);
   const snapshot=viewer.cloneNode(true);
   snapshot.removeAttribute("hidden");
   const vb=viewer.viewBox.baseVal;
@@ -458,21 +805,46 @@ $("csv").onclick=()=>{
   const rows=model.grids.flat().map(c=>[c.layer,c.sequence,c.letter,c.cycle,c.group,c.style,c.slot,c.angle,round(c.x),round(c.y),model.edge,'"'+coords(c.points)+'"'].join(","));
   save("grain-cells.csv","\ufefflayer,sequence,layout,cycle,group,style,slot,angle_deg,x_mm,y_mm,edge_mm,clipped_outline_mm\r\n"+rows.join("\r\n"),"text/csv;charset=utf-8");
 };
+function exportModel(format){
+  if(updateFrame!==null) update();
+  if($("export-"+format).disabled) return;
+  $("exportError").hidden=true;
+  try{
+    const plan=getPrintPlan();
+    const data=format==="stl"?Grain3D.exportSTL(model,plan):Grain3D.export3MF(model,plan);
+    save("grain-strands."+format,data,data.type);
+  }catch(error){
+    $("exportError").textContent=error.message;
+    $("exportError").hidden=false;
+  }
+}
+$("export-stl").onclick=()=>exportModel("stl");
+$("export-3mf").onclick=()=>exportModel("3mf");
+$("exportMenu").addEventListener("toggle",()=>{if(!$("exportMenu").open) $("exportError").hidden=true});
+document.addEventListener("click",event=>{
+  if($("exportMenu").open&&!$("exportMenu").contains(event.target)) $("exportMenu").open=false;
+});
 if(globalThis.Grain3D&&globalThis.ResizeObserver){
   preview=Grain3D.createPreview($("interactive"),palette,status=>{
     const message={
       loading:"Preparing the 3D view…",
       lost:"The WebGL context was lost. Waiting for the browser to restore it.",
-      error:"The 3D view could not render. Retry 3D or switch to Isometric or Top.",
+      error:"The 3D view could not render. An SVG preview is available below.",
     }[status];
     $("renderNotice").hidden=!message;
     $("renderStatus").textContent=message||"";
     $("retry3d").hidden=status!=="lost"&&status!=="error";
+    viewer.toggleAttribute("hidden",status!=="error");
+    if(status==="error"&&model) renderSvg(1,[0,0]);
+  },(cell,renderedModel)=>{
+    if(renderedModel===model&&model.program===program) selectCell(cell);
   });
   $("retry3d").onclick=()=>preview.retry();
   window.addEventListener("pagehide",event=>{if(!event.persisted) preview.dispose()});
-  $("three").hidden=false;
-  changeMode("three");
+  mode="three";
+  $("interactive").hidden=$("printTools").hidden=$("viewHelp").hidden=false;
+  viewer.setAttribute("hidden","");
+  preview.show(true);
 }
 showSequenceRows();
 update();
