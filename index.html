@@ -65,10 +65,12 @@ body:has(.sidebar[data-collapsed=true]) .interactive{width:100%}
 .print-tools select,.print-tools input{width:auto;font-size:.8rem;padding:4px 6px}
 .print-tools input{width:68px}
 .print-error{flex-basis:100%;margin:0;color:#9b2c3b;font-size:.8rem}
-.cell-tools{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:.8rem}
+.cell-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:.8rem}
 .cell-tools span{color:#0055d9;font-weight:650;white-space:nowrap}
 .cell-tools label{display:flex;align-items:center;gap:5px;white-space:nowrap}
 .cell-tools select,.cell-tools button{width:auto;padding:4px 7px;font-size:.78rem}
+#deleteCell{color:#9b2c3b;border-color:#e8b5b9}
+#deleteCell:hover{background:#fff4f5}
 .gap-mark{display:inline-block;width:14px;border-top:2px dashed #34383e}
 #printNote{font-variant-numeric:tabular-nums}
 .column-editor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
@@ -121,6 +123,7 @@ body:has(.sidebar[data-collapsed=true]) .interactive{width:100%}
   .viewer:has(#printTools:not([hidden])) .tools{bottom:124px}
   .cell-tools{gap:7px;font-size:.73rem}
   .cell-tools label{font-size:.73rem}
+  .workspace:has(#cellTools:not([hidden])){--cell-tools-offset:70px}
   .workspace:has(#printTools:not([hidden])) .sidebar{top:calc(142px + var(--cell-tools-offset, 0px));max-height:calc(100% - 208px - var(--cell-tools-offset, 0px))}
   .workspace:has(#printTools:not([hidden]) #printError:not([hidden])) .sidebar{top:calc(178px + var(--cell-tools-offset, 0px));max-height:calc(100% - 244px - var(--cell-tools-offset, 0px))}
 }
@@ -164,8 +167,10 @@ body:has(.sidebar[data-collapsed=true]) .interactive{width:100%}
   </div>
   <div class="cell-tools" id="cellTools" hidden>
     <span id="cellInfo" aria-live="polite"></span>
-    <label>Cell angle <select id="cellAngle"><option value="30">30°</option><option value="90">90°</option><option value="150">150°</option></select></label>
+    <label id="cellAngleControl">Cell angle <select id="cellAngle"><option value="30">30°</option><option value="90">90°</option><option value="150">150°</option></select></label>
     <button type="button" id="clearCell" aria-label="Clear selection">Clear</button>
+    <button type="button" id="deleteCell" aria-label="Delete selected grain">Delete</button>
+    <button type="button" id="undoDelete" aria-label="Undo deletion" hidden>Undo delete</button>
   </div>
 </div>
 <div class="stage">
@@ -175,7 +180,7 @@ body:has(.sidebar[data-collapsed=true]) .interactive{width:100%}
   </div>
   <div class="tools">
     <button id="minus" aria-label="Zoom out">−</button><button id="plus" aria-label="Zoom in">+</button><button id="fit">Reset</button>
-    <span id="viewHelp" class="view-help" hidden><span class="mouse-help">Drag to rotate · Scroll to zoom · Right-drag to pan</span><span class="touch-help">One finger to rotate · Pinch to zoom · Two fingers to pan</span><span id="programHelp"> · Select a grain to edit its angle</span></span>
+    <span id="viewHelp" class="view-help" hidden><span class="mouse-help">Drag to rotate · Scroll to zoom · Right-drag to pan</span><span class="touch-help">One finger to rotate · Pinch to zoom · Two fingers to pan</span><span> · Select a grain to edit or delete</span></span>
   </div>
 </div>
 <div class="legend"><span class="angle-key"><i class="sw" style="background:#7463bc"></i>30°</span><span class="angle-key"><i class="sw" style="background:#368f8b"></i>90°</span><span class="angle-key"><i class="sw" style="background:#d18162"></i>150°</span><span id="printKey" hidden><i class="sw" style="background:#ff900d"></i>30° · 90° · 150°</span><span id="gapLegend" hidden><i class="gap-mark"></i>Unfilled gap</span><span id="stats" class="stats" aria-live="polite"></span><span id="printNote" aria-live="polite" hidden></span></div>
@@ -242,12 +247,14 @@ let plannedModel, plannedWidth, printPlan, printFrame=null;
 const angleOverrides=new Map();
 const faceOverrides=new Map();
 const columnOverrides={direct:new Map(),cycle:new Map()};
+const deletedGrains={point:new Set(),line:new Set(),face:new Set()};
 const arrangements={point:"custom",face:"cycle"};
 let selectedCellId=null;
 let program="point",lineMode="direct",selectedColumn=null;
 let columnEditorModel,columnEditorLayer;
 let innerMode="direct",stackMode="direct",preset="",selectedStyle="1";
 const customEditing=()=>arrangements[program]==="custom";
+const cellEditKey=cell=>program==="face"?cell.templateId:cell.id;
 
 $("patterns").innerHTML=keys.map(key=>'<div class="style-row" id="style-row-'+key+'" '+(key==="1"?"":"hidden")+'>'+
   schemes[key].map((angle,i)=>'<label>Position '+slots[i]+'<select id="style-'+key+'-'+i+'" aria-label="Pattern '+key+' Position '+slots[i]+'">'+Object.keys(palette).map(option=>'<option value="'+option+'" '+(String(angle)===option?'selected':'')+'>'+option+'°</option>').join('')+'</select></label>').join('')+'</div>').join('');
@@ -374,7 +381,8 @@ function build(){
       // Retain the same template phase at a lattice address after each layer is shifted and clipped.
       const phase=face?anchor-faceAnchor:group;
       const style=line?"":sequence[((phase%sequence.length)+sequence.length)%sequence.length];
-      return cells.map(c=>{
+      // Keep the original indexing so deleting a grain does not shift the surrounding patterns.
+      return cells.filter(c=>!deletedGrains[program].has(cellEditKey(c))).map(c=>{
         const baseAngle=line?[30,90,150][((c.column%3)+3)%3]:+$("style-"+style+"-"+c.slot).value;
         const override=line?columnOverrides[lineMode].get(sequenceIndex+":"+c.column):
           customEditing()?(point?angleOverrides.get(c.id):faceOverrides.get(c.templateId)):undefined;
@@ -420,18 +428,28 @@ function render(){
   if(model?.program!==program) return;
   const current=+$("layer").value||0;
   const {grids,layers,layouts}=model;
-  const cell=!customEditing()||selectedCellId===null?null:grids[current].find(c=>c.id===selectedCellId);
+  const cell=getSelectedCell(current);
   selectedCellId=cell?.id??null;
-  $("cellTools").hidden=mode!=="three"||!cell;
+  const canUndo=deletedGrains[program].size>0;
+  $("cellTools").hidden=mode!=="three"||(!cell&&!canUndo);
+  $("cellInfo").hidden=$("clearCell").hidden=$("deleteCell").hidden=!cell;
+  $("cellAngleControl").hidden=!cell||!customEditing();
+  $("undoDelete").hidden=!canUndo;
   if(cell){
     $("cellInfo").textContent=program==="face"?"Shared cell · "+cell.group+cell.slot:"Layer "+cell.layer+" · "+cell.group+cell.slot;
     $("cellAngle").value=String(cell.angle);
+    $("deleteCell").setAttribute("aria-label",program==="face"?"Delete selected grain from all layers":"Delete selected grain");
+    $("deleteCell").title=program==="face"?"Delete this grain from the shared layer template":"Delete this grain from the selected layer";
   }
   const column=program==="line"?showColumnEditor(current):null;
   const sequenceLabel=program==="face"?"Layer 1 template":(program==="line"?"Column template ":"Sequence ")+(layers[current]+1);
   $("stats").textContent="Layer "+(current+1)+" of "+grids.length+" · "+sequenceLabel+" · Stack "+layouts[current]+" · "+grids[current].length+" cells";
-  if(mode==="three") renderThree(current,column??cell);
+  if(mode==="three") renderThree(current,cell??column);
   if(mode!=="three"||$("interactive").dataset.status==="error") renderSvg(zoom,pan);
+}
+
+function getSelectedCell(layer=+$("layer").value){
+  return selectedCellId===null?null:model?.grids[layer]?.find(cell=>cell.id===selectedCellId)??null;
 }
 
 function showColumnEditor(layer){
@@ -486,19 +504,14 @@ function getPrintPlan(){
 }
 
 function selectCell(cell){
-  if(program==="line"){
-    if(!cell) return;
-    selectedColumn=cell.column;
-    $("layer").value=cell.layer-1;
-    switchPanel($("tab-intralayer"));
-    render();
-    return;
-  }
-  if(!customEditing()) return;
   const id=cell?.id??null;
   if(id===selectedCellId) return;
   selectedCellId=id;
   if(cell) $("layer").value=cell.layer-1;
+  if(program==="line"&&cell){
+    selectedColumn=cell.column;
+    switchPanel($("tab-intralayer"));
+  }
   render();
 }
 
@@ -650,8 +663,6 @@ document.querySelectorAll("[data-program]").forEach(button=>{
   button.onclick=()=>switchProgram(button.dataset.program);
 });
 function syncArrangement(){
-  $("programHelp").textContent=program==="line"?" · Select a grain to choose its column":
-    !customEditing()?"":program==="face"?" · Select a grain to edit its copies":" · Select a grain to edit its angle";
   for(const button of $(program+"Layout").querySelectorAll("[data-arrangement]")){
     button.setAttribute("aria-pressed",button.dataset.arrangement===arrangements[program]);
   }
@@ -720,6 +731,7 @@ $("lineLayer").onchange=()=>{
   render();
 };
 $("lineColumn").onchange=()=>{
+  selectedCellId=null;
   selectedColumn=+$("lineColumn").value;
   render();
 };
@@ -741,6 +753,19 @@ document.querySelectorAll("[data-preset]").forEach(button=>button.onclick=()=>{
 });
 $("renderStyle").onchange=render;
 $("clearCell").onclick=()=>selectCell(null);
+$("deleteCell").onclick=()=>{
+  const cell=getSelectedCell();
+  if(!cell||model.program!==program) return;
+  deletedGrains[program].add(cellEditKey(cell));
+  selectedCellId=null;
+  update();
+};
+$("undoDelete").onclick=()=>{
+  const deletions=deletedGrains[program];
+  if(!deletions.size) return;
+  deletions.delete([...deletions].at(-1));
+  update();
+};
 document.addEventListener("keydown",event=>{
   if(event.key!=="Escape") return;
   if($("exportMenu").open){
@@ -749,13 +774,13 @@ document.addEventListener("keydown",event=>{
   }else if(mode==="three"&&selectedCellId!==null) selectCell(null);
 });
 $("cellAngle").onchange=()=>{
-  if(!customEditing()) return;
-  const cell=model.grids[+$("layer").value].find(c=>c.id===selectedCellId);
+  if(!customEditing()||model?.program!==program) return;
+  const cell=getSelectedCell();
   if(!cell) return;
   const angle=+$("cellAngle").value;
   if(!Object.hasOwn(palette,angle)) return;
   const overrides=program==="face"?faceOverrides:angleOverrides;
-  const id=program==="face"?cell.templateId:cell.id;
+  const id=cellEditKey(cell);
   if(angle===cell.baseAngle) overrides.delete(id);
   else overrides.set(id,angle);
   update();

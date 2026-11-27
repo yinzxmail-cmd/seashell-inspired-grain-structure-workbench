@@ -17,15 +17,17 @@ Design layered hexagonal grain structures inspired by seashell microstructures. 
 | Mode | What you edit |
 | --- | --- |
 | **Point Programming** | **Repeat units** tiles the configured three-grain units. **Custom** lets you select a grain and override its angle on that layer. |
-| **Line Programming** | Grains in a column on the selected layer share one angle. Pick a layer and column in **In-layer Layout**, or click a grain to highlight its column. Keep the layers independent or repeat column templates over a specified cycle. |
+| **Line Programming** | Grains in a column on the selected layer share one angle. Pick a layer and column in **In-layer Layout**, or click a grain to select its column. Keep the layers independent or repeat column templates over a specified cycle. |
 | **Plane Programming** | Build a pattern sequence for the first layer. **Repeat units** tiles the sequence, while **Custom** lets you override a grain at the corresponding position in every layer. Each layer then uses its own stacking offset. |
 
-Sample dimensions are shared across all three modes. Each mode retains its layer and stacking settings while you switch between modes in the same session. In a custom editing mode, **Clear** or Esc removes the current selection.
+Sample dimensions are shared across all three modes. Each mode retains its layer and stacking settings while you switch between modes in the same session. **Clear** or Esc clears the selected grain.
+
+Select a grain and choose **Delete** to remove it from the model and exports. Point and Line Programming remove the grain on the selected layer. Plane Programming removes the corresponding position from the shared template on every layer. **Undo delete** restores the most recent removal in the current mode.
 
 ## Preview and geometry
 
 - **Printed strands** shows the complete stack. **Printed layer** isolates the selected layer. **Solid grains** shows the underlying hexagons.
-- The default deposited strand width is **0.60 mm**. Strands retain their full width at cell boundaries. Their flattened cross-section has rounded sides and planar end faces. [Slic3r flow model](https://manual.slic3r.org/advanced/flow-math)
+- The deposited strand height is always half its width. A width of **0.60 mm** gives a **0.30 mm** layer height. Strands retain their full width at cell boundaries. Their flattened cross-section has rounded sides and planar end faces. [Slic3r flow model](https://manual.slic3r.org/advanced/flow-math)
 - The minimum separation is **10% of the strand width**, or **0.06 mm** at the default. It applies between neighboring strands, across grain boundaries, and between layers. Dashed gray marks indicate uncovered areas.
 - The 3D view uses WebGL 2. If the renderer fails, an SVG preview is shown. **Retry 3D** restarts the renderer.
 

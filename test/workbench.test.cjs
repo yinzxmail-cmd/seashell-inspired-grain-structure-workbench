@@ -111,6 +111,50 @@ async function grainRows(page) {
   });
 }
 
+test("a selected grain can be removed from a layer and restored without changing its neighbors", async t => {
+  const page = await openWorkbench(t);
+  await page.goto(url);
+  await ready(page);
+  const before = await grainRows(page);
+  const box = await page.locator("#interactive canvas").boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.getByRole("button", { name: "Delete selected grain", exact: true }).click({ timeout: 4000 });
+  const deleted = await grainRows(page);
+  assert.equal(deleted.length, before.length - 1);
+  assert.deepEqual(deleted.filter(cell => cell.layer !== 1), before.filter(cell => cell.layer !== 1));
+  const remaining = new Set(deleted.map(cell => `${cell.layer}:${cell.x}:${cell.y}`));
+  assert.deepEqual(deleted, before.filter(cell => remaining.has(`${cell.layer}:${cell.x}:${cell.y}`)));
+  await page.getByRole("button", { name: "Undo deletion", exact: true }).click();
+  assert.deepEqual(await grainRows(page), before);
+
+  await nextDraw(page, () => page.getByRole("button", { name: "Line Programming", exact: true }).click());
+  const lineBefore = await grainRows(page);
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.getByRole("button", { name: "Delete selected grain", exact: true }).click();
+  const lineAfter = await grainRows(page);
+  assert.equal(lineAfter.length, lineBefore.length - 1);
+  await page.getByRole("button", { name: "Undo deletion", exact: true }).click();
+  assert.deepEqual(await grainRows(page), lineBefore);
+});
+
+test("deleting a selected grain in plane programming removes the corresponding position in every layer", async t => {
+  const page = await openWorkbench(t);
+  await page.goto(url);
+  await ready(page);
+  await nextDraw(page, () => page.getByRole("button", { name: "Plane Programming", exact: true }).click());
+  const before = await grainRows(page);
+  const box = await page.locator("#interactive canvas").boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.getByRole("button", { name: "Delete selected grain from all layers", exact: true }).click({ timeout: 4000 });
+  const deleted = await grainRows(page);
+  for (const layer of [1, 2, 3]) {
+    assert.equal(deleted.filter(cell => cell.layer === layer).length,
+      before.filter(cell => cell.layer === layer).length - 1);
+  }
+  await page.getByRole("button", { name: "Undo deletion", exact: true }).click();
+  assert.deepEqual(await grainRows(page), before);
+});
+
 test("line programming applies one angle per column and retains independent and repeating layer edits", async t => {
   const page = await openWorkbench(t);
   await page.goto(url);
@@ -239,7 +283,15 @@ test("only numbered layers appear in the preview and export offers STL and 3MF",
     await page.locator("#exportMenu summary").click({ timeout: 4000 });
     const [file] = await Promise.all([page.waitForEvent("download"), page.locator("#export-" + format).click()]);
     assert.equal(file.suggestedFilename(), "grain-strands." + format);
-    assert.ok((await fs.stat(await file.path())).size > 1000);
+    const data = await fs.readFile(await file.path());
+    assert.ok(data.byteLength > 1000);
+    if (format === "stl") {
+      let maxZ = 0;
+      for (let face = 84; face < data.byteLength; face += 50) {
+        for (const vertexZ of [20, 32, 44]) maxZ = Math.max(maxZ, data.readFloatLE(face + vertexZ));
+      }
+      assert.ok(Math.abs(maxZ - 1.02) < 1e-6);
+    }
   }
 });
 
@@ -519,6 +571,10 @@ test("the print preview changes with strand diameter and shows uncovered areas w
   assert.equal(await input.inputValue({ timeout: 5000 }), "0.6");
   await page.locator("#printNote").filter({ hasText: /[1-9]\d* strands/ }).waitFor({ timeout: 5000 });
   assert.match(await page.locator("#printNote").textContent(), /0\.06 mm gap/);
+  assert.match(await page.locator("#printNote").textContent(), /0\.3 mm layer/);
+  await nextDraw(page, () => input.fill("0.8"));
+  assert.match(await page.locator("#printNote").textContent(), /0\.4 mm layer/);
+  await nextDraw(page, () => input.fill("0.6"));
   const defaultPrint = await snapshot(page);
   await page.locator("#layer").selectOption("1");
   await page.locator("#layer").selectOption("0");

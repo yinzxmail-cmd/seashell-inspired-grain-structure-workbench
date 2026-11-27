@@ -156,9 +156,10 @@ export function planPrint(model, width) {
     }
     layers.push({ tracks, gaps });
   }
-  const height = Math.min(model.edge * 0.49, width * 0.6);
+  const height = width / 2;
   const gap = strandGap(width);
   const pitch = height + (trackCount ? gap : 0);
   const stackHeight = height + (layers.length - 1) * pitch;
+  if (!Number.isFinite(stackHeight)) return null;
   return { width, height, gap, pitch, stackHeight, layers };
 }

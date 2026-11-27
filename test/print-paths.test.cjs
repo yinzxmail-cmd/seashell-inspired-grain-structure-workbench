@@ -110,3 +110,14 @@ test("the rendered layers have a positive vertical gap between strand meshes", a
   bottom.computeBoundingBox();
   close(top.boundingBox.min.y - bottom.boundingBox.max.y, 0.06);
 });
+
+test("layer height is exactly half the strand width at every cell edge length", async () => {
+  const { planPrint } = await planner;
+  const cell = { points: polygon, angle: 90 };
+  const model = { width: 5, height: 3, edge: 0.25, grids: [[cell], [cell], [cell]] };
+  for (const width of [0.2, 0.6, 1.2]) {
+    const plan = planPrint(model, width);
+    close(plan.height, width / 2);
+    close(plan.stackHeight, 3 * (width / 2) + 2 * width * 0.1);
+  }
+});
