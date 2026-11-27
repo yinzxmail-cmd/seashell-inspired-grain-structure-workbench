@@ -90,7 +90,8 @@ function bestTracks(polygon, width, gap) {
 }
 
 export function placeStrands(points, angle, width, edge, guideDensity = 1) {
-  const [cos, sin] = angles.get(angle);
+  const radians = angle * Math.PI / 180;
+  const [cos, sin] = angles.get(angle) ?? [Math.cos(radians), -Math.sin(radians)];
   const polygon = points.map(([x, y]) => [x * cos + y * sin, -x * sin + y * cos]);
   const world = (u, v) => [u * cos - v * sin, u * sin + v * cos];
   const offsets = polygon.map(point => point[1]);
@@ -99,7 +100,7 @@ export function placeStrands(points, angle, width, edge, guideDensity = 1) {
   // Each side of a shared grain boundary supplies half of the minimum gap.
   const tracks = bestTracks(insetGrain(polygon, gap / 2), width, gap);
   const rowSpacing = Math.min(edge * 0.38, Math.max(width * 0.58, edge * 0.22));
-  const rows = Math.max(1, Math.ceil(span * guideDensity / rowSpacing));
+  const rows = guideDensity ? Math.max(1, Math.ceil(span * guideDensity / rowSpacing)) : 0;
   const dash = Math.min(edge * 0.19, Math.max(edge * 0.12, width * 0.55));
   const gaps = [];
   function addDashes(a, b, offset) {

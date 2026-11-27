@@ -6,8 +6,8 @@ Design layered hexagonal grain structures inspired by seashell microstructures. 
 
 ## Quick start
 
-1. Under **Geometry**, set the specimen length, width, and hexagon edge length in millimeters. A three-grain unit can combine the fixed orientations 30°, 90°, and 150°.
-2. Choose a programming mode, then set the layer count under **In-layer Layout**.
+1. Under **Geometry**, set the specimen length, width, and hexagon edge length in millimeters. The angle controls offer 30°, 60°, 90°, 150°, and a custom angle with both a slider and numeric input from 0° to 180°.
+2. Choose a programming mode and set **Total layers** at the top left of the preview.
 3. Under **Layer Stacking**, choose a repeating αβγ or ααα preset. For a custom sequence, choose whether to specify each layer or repeat a cycle.
 4. Drag to rotate, scroll to zoom, or right-drag to pan. On a touchscreen, drag with one finger to rotate, pinch to zoom, and drag with two fingers to pan. **Reset** restores the default view.
 5. Choose **Export** to download the project settings, geometry, or toolpaths.
@@ -16,21 +16,26 @@ Design layered hexagonal grain structures inspired by seashell microstructures. 
 
 | Mode | What you edit |
 | --- | --- |
-| **Point Programming** | Choose a numbered layer in **Cell Patterns**. **Repeated units** tiles that layer's own three-grain unit vertically and along both diagonals. **Custom** lets consecutive units on that layer have different grain angles. |
-| **Line Programming** | Grains in a column on the selected layer share one angle. Pick a layer and column in **In-layer Layout**, or click a grain to select its column. Keep the layers independent or repeat column templates over a specified cycle. |
-| **Plane Programming** | **Repeated units** cycles the first-layer sequence vertically and along both diagonals. **Custom** places the specified pattern numbers once, uses Pattern 1 for the remaining units, and lets you edit individual grains. The other layers use the first-layer assignments and their own stacking offsets. |
+| **Point Programming** | **In-layer Layout** lists the three positions for each numbered layer. **Repeated units** tiles that layer's unit vertically and along both diagonals. **Custom** provides individual grain edits. |
+| **Line Programming** | In **Geometry**, choose one or two distinct directions from 0°, 60°, 90°, and 120°. Each family supports a cycle of line angles or individual line edits. The selected direction is highlighted through the central grain. |
+| **Face Programming** | Each grain on a layer shares one angle, and every active layer uses a different orientation. Layer stacking controls physical offsets independently. |
 
-Select a position in the three-grain diagram to highlight the corresponding grain in the current layer's center unit. Pick a fixed angle in either the 3D view or the diagram. Repeat mode updates matching unit positions. Custom mode edits that grain in the layer pattern. Click outside the selection or press Esc to clear the highlight. The diagram keeps showing the edited angles.
+Select a position in the diagram or click the specimen to highlight its grain. Use an angle control or the hexagonal color swatches above the model. The full color picker and the six presets affect the selected grain's display color. Click outside the selection or press Esc to clear the highlight.
+
+With two line directions, the center grain is the coordinate origin. Each grain uses the angle of the intersecting line from strand 1 if the sum of the two oblique coordinates is odd, or from strand 2 if it is even. The perpendicular pair uses staggered half-step positions where needed, with an integral coordinate sum.
+
+In ααα stacking, all layers share the same lattice and grain centers align. In αβγ, the three layers occupy distinct lattice positions. In the cyclic order a center on the upper layer projects to a vertex of a lower-layer hexagon. For edge length s with screen Y pointing down, one coordinate convention for (α, β, γ) is (0, 0), (−√3s/2, −s/2), and (0, −s). The positions are equivalent up to whole lattice translations. [Yu et al., Fig. 3a and Methods](https://www.nature.com/articles/s41467-024-53850-w.pdf)
 
 Sample dimensions are shared across all three modes. When you switch modes with unsaved edits, **Save and stay** downloads an editable project file and keeps the mode open. **Discard and switch** returns the current mode to its last saved settings and opens the requested mode. Use **Export → Open project** to continue from a saved file.
 
-Select a grain and choose **Delete** to remove it from the model and exports. Point and Line Programming remove the grain on the selected layer. Plane Programming removes the corresponding position from the shared template on every layer. **Undo delete** restores the most recent removal in the current mode.
+Select a grain and choose **Delete** to remove it from the model and exports. Point and Line Programming remove the grain on the selected layer. Face Programming removes the corresponding position from every layer. **Undo delete** restores the most recent removal in the current mode.
 
 ## Preview and geometry
 
 - **Printed strands** shows the complete stack. **Printed layer** isolates the selected layer. **Solid grains** shows the underlying hexagons.
-- The deposited strand height is always half its width. A width of **0.60 mm** gives a **0.30 mm** layer height. Strands retain their full width at cell boundaries. Their flattened cross-section has rounded sides and planar end faces. [Slic3r flow model](https://manual.slic3r.org/advanced/flow-math)
-- Layer spacing equals strand height, so adjacent layers meet wherever their roads overlap. The mesh preview retains a minimum in-layer strand separation of **10% of the strand width**, or **0.06 mm** at the default. Dashed gray marks indicate uncovered areas.
+- The layer height is half the selected strand width. A nominal width of **0.60 mm** gives a **0.30 mm** layer height. A road that is lengthened redistributes its original extrusion volume along the longer path. The preview uses its corresponding bead width. [Slic3r flow model](https://manual.slic3r.org/advanced/flow-math)
+- The printed preview, STL, 3MF, and G-code use the same deposition paths. Adjacent grains overlap at shared edges by extending or repositioning their existing oriented strands. Layer spacing equals layer height. Dashed gray marks identify grains that cannot fit a stroke at the chosen width.
+- **Merge matching grains** lays out adjacent grains with the same orientation on a shared grid of parallel strands. A strand that crosses a shared edge prints in a continuous extrusion move. The region keeps its original material volume. Strands running parallel to a seam or separated by a gap remain separate. The preview reports the continuous strokes on the selected layer.
 - The 3D view uses WebGL 2. If the renderer fails, an SVG preview is shown. **Retry 3D** restarts the renderer.
 
 ## Export formats
@@ -39,12 +44,12 @@ Select a grain and choose **Delete** to remove it from the model and exports. Po
 | --- | --- |
 | **STL** | Binary mesh of the complete strand stack. Select millimeters when importing if your slicer asks for a unit. |
 | **3MF** | Mesh of the complete strand stack with millimeters specified in the file. |
-| **G-code** | Printer moves with individually started, stopped, and retracted strokes. Separate perimeter roads overlap across shared grain boundaries. |
+| **G-code** | Oriented extrusion moves, including continuous strands across equal-angle grains when merging is enabled. Travel, lift, and retraction occur between strokes. |
 | **Project (.json)** | Editable dimensions, layer settings, and mode edits. |
 | **CSV** | Grain centers, orientations, layer offsets, and clipped outlines. |
 | **SVG** | A projected preview of the specimen. |
 
-STL and 3MF preserve the in-layer mesh gaps and layer offsets. G-code adds separate perimeter strokes to join adjacent grains within a layer and prints the stack from the bottom up. Export checks the build volume and requires each layer to have printable strokes. The file targets a single-extruder Marlin-compatible printer with a positive XY bed origin. Set the build volume, filament diameter, and temperatures in the export dialog. [Marlin linear moves](https://marlinfw.org/docs/gcode/G000-G001.html)
+G-code prints the stack from the bottom up and completes all strokes of one orientation within a layer before switching to the next. Export checks the build volume and requires each layer to have printable strokes. The file targets a single-extruder Marlin-compatible printer with a positive XY bed origin. Set the build volume, filament diameter, and temperatures in the export dialog. [Marlin linear moves](https://marlinfw.org/docs/gcode/G000-G001.html)
 
 ## Run locally or develop
 

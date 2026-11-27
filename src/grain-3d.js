@@ -10,7 +10,8 @@ import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { pickCell } from "./cell-picking.mjs";
 import { addPrintLayers, printShadowMaterial } from "./print-mesh.mjs";
-export { planPrint } from "./print-paths.mjs";
+export { planDeposits as planPrint } from "./gcode.mjs";
+export { stackOffset, lineIndex, weaveFamily, lineDirections } from "./programming.mjs";
 export { exportSTL, export3MF } from "./model-export.mjs";
 export { exportGcode } from "./gcode.mjs";
 
@@ -45,15 +46,18 @@ function layerGeometry(cells, layer, model, colors, height, scale) {
     vertexColors.push(color.r, color.g, color.b);
   }
 
-  for (const { points, angle } of cells) {
-    const { fill, wall, sin, cos } = colors[angle];
+  const tint = new Color();
+  for (const { points, angle, color } of cells) {
+    const rad = angle * Math.PI / 180;
+    const { fill, wall, sin, cos } = colors[angle] ?? { ...colors[90], sin: Math.sin(rad), cos: Math.cos(rad) };
+    if (color) tint.set(color);
     const first = positions.length / 3;
     const count = points.length;
     for (const point of points) {
       const [x, z] = point;
-      vertex(point, top, 0, 1, 0, fill, (x * sin + z * cos) / spacing);
+      vertex(point, top, 0, 1, 0, color ? tint : fill, (x * sin + z * cos) / spacing);
     }
-    for (const point of points) vertex(point, bottom, 0, -1, 0, wall);
+    for (const point of points) vertex(point, bottom, 0, -1, 0, color ? tint : wall);
     for (let i = 1; i < count - 1; i++) {
       indices.push(first, first + i + 1, first + i);
       indices.push(first + count, first + count + i, first + count + i + 1);
@@ -65,10 +69,10 @@ function layerGeometry(cells, layer, model, colors, height, scale) {
       if (length < 1e-10) continue;
       const nx = dz / length, nz = -dx / length;
       const side = positions.length / 3;
-      vertex(a, top, nx, 0, nz, wall);
-      vertex(b, top, nx, 0, nz, wall);
-      vertex(b, bottom, nx, 0, nz, wall);
-      vertex(a, bottom, nx, 0, nz, wall);
+      vertex(a, top, nx, 0, nz, color ? tint : wall);
+      vertex(b, top, nx, 0, nz, color ? tint : wall);
+      vertex(b, bottom, nx, 0, nz, color ? tint : wall);
+      vertex(a, bottom, nx, 0, nz, color ? tint : wall);
       indices.push(side, side + 1, side + 2, side, side + 2, side + 3);
     }
   }
@@ -84,7 +88,10 @@ function layerGeometry(cells, layer, model, colors, height, scale) {
 
 function disposeModel(group) {
   group.removeFromParent();
-  group.traverse(object => object.geometry?.dispose());
+  group.traverse(object => {
+    if (object.isInstancedMesh) object.dispose();
+    object.geometry?.dispose();
+  });
   group.clear();
 }
 
@@ -147,7 +154,9 @@ export function createPreview(host, palette, onStatus, onCellPicked) {
     dropOutline();
     if (!selectedCell) return;
     const { top, pitch, scale } = stack;
-    const cells = Array.isArray(selectedCell) ? selectedCell : [selectedCell];
+    const guide = selectedCell.cells ? selectedCell : null;
+    const cells = guide?.cells ?? [selectedCell];
+    if (!cells.length) return;
     const positions = [];
     for (const { points, layer } of cells) {
       const y = (top - (layer - 1) * pitch) * scale;
@@ -162,21 +171,27 @@ export function createPreview(host, palette, onStatus, onCellPicked) {
     const line = new LineSegments2(new LineSegmentsGeometry().setPositions(positions), materials.outline[0]);
     line.renderOrder = 3;
     outline.add(line);
-    if (cells.length === 1) {
-      const { points, layer } = cells[0];
-      const y = (top - (layer - 1) * pitch) * scale;
+    function fillCells(grains, material, order) {
+      if (!grains.length) return;
       const triangles = [];
-      for (let i = 1; i < points.length - 1; i++) {
-        for (const [x, z] of [points[0], points[i], points[i + 1]]) {
-          triangles.push((x - builtModel.width / 2) * scale, y, (z - builtModel.height / 2) * scale);
+      for (const { points, layer } of grains) {
+        const y = (top - (layer - 1) * pitch) * scale;
+        for (let i = 1; i < points.length - 1; i++) {
+          for (const [x, z] of [points[0], points[i], points[i + 1]]) {
+            triangles.push((x - builtModel.width / 2) * scale, y, (z - builtModel.height / 2) * scale);
+          }
         }
       }
       const fill = new BufferGeometry();
       fill.setAttribute("position", new Float32BufferAttribute(triangles, 3));
-      const tint = new Mesh(fill, materials.outline[1]);
-      tint.renderOrder = 2;
+      const tint = new Mesh(fill, material);
+      tint.renderOrder = order;
       outline.add(tint);
     }
+    if (guide) {
+      fillCells(cells, materials.outline[1], 2);
+      if (guide.anchor) fillCells([guide.anchor], materials.outline[2], 2.5);
+    } else fillCells(cells, materials.outline[1], 2);
     scene.add(outline);
     outlinedCell = selectedCell;
   }
@@ -319,8 +334,8 @@ export function createPreview(host, palette, onStatus, onCellPicked) {
           new MeshLambertMaterial({ map, vertexColors: true, ...fade }),
         ],
         road: [
-          new MeshPhongMaterial({ color: 0xdf8b49, specular: 0xa37443, shininess: 30 }),
-          new MeshPhongMaterial({ color: 0xdf8b49, specular: 0xa37443, shininess: 30, ...fade }),
+          new MeshPhongMaterial({ vertexColors: true, specular: 0x735740, shininess: 30 }),
+          new MeshPhongMaterial({ vertexColors: true, specular: 0x735740, shininess: 30, ...fade }),
         ],
         gap: [
           new LineBasicMaterial({ color: 0x34383e, transparent: true, opacity: 0.83, depthWrite: false }),
@@ -330,6 +345,8 @@ export function createPreview(host, palette, onStatus, onCellPicked) {
         outline: [
           new LineMaterial({ color: 0x24645e, linewidth: 3, depthTest: false, depthWrite: false, transparent: true }),
           new MeshBasicMaterial({ color: 0x34736c, opacity: 0.4, side: DoubleSide, transparent: true,
+            depthTest: false, depthWrite: false }),
+          new MeshBasicMaterial({ color: 0x143d39, opacity: 0.78, side: DoubleSide, transparent: true,
             depthTest: false, depthWrite: false }),
         ],
       };

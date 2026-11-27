@@ -1,5 +1,5 @@
 import { strToU8, Zip, ZipDeflate } from "three/addons/libs/fflate.module.js";
-import { printProfile, strandIndices } from "./print-mesh.mjs";
+import { printProfile, profileFraction, strandIndices } from "./print-mesh.mjs";
 
 const xml = '<?xml version="1.0" encoding="UTF-8"?>';
 const modelPart = "3D/3dmodel.model";
@@ -20,10 +20,12 @@ function meshInfo(plan) {
 function* strands(model, plan, profile) {
   for (const [layerIndex, layer] of plan.layers.entries()) {
     const bottom = (plan.layers.length - 1 - layerIndex) * plan.pitch;
-    for (const { startFace, endFace } of layer.tracks) {
+    for (const { startFace, endFace, width } of layer.tracks) {
       const vertices = [];
       for (const [[ax, ay], [bx, by]] of [startFace, endFace]) {
-        for (const { t, y } of profile) {
+        for (const sample of profile) {
+          const t = profileFraction(sample,width,plan.height);
+          const { y } = sample;
           // Rotate the preview's Y-up system into Z-up, retaining right-handed winding.
           vertices.push([ax + (bx - ax) * t, model.height - (ay + (by - ay) * t), bottom + y]);
         }

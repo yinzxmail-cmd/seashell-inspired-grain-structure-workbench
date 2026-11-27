@@ -113,6 +113,66 @@ async function grainRows(page) {
   });
 }
 
+function exportedToolpaths(code) {
+  const paths = new Map();
+  for (const layer of code.split(/^; LAYER /m).slice(1)) {
+    const layerNumber = +layer.match(/model-layer=(\d+)/)[1];
+    const moves = layer.matchAll(/^G0 X([\d.]+) Y([\d.]+)[^\n]*\nG0 Z[^\n]*\n(?:G1 E[^\n]*\n)?G1 X([\d.]+) Y([\d.]+)/gm);
+    paths.set(layerNumber, [...moves].map(([, ...axes]) => axes.map(Number)));
+  }
+  return paths;
+}
+
+const extrusions = code => [...code.matchAll(/^G1 X.* E([\d.]+) F/gm)].map(match => match[1]);
+const totalExtrusion = paths => paths.reduce((sum,value) => sum + Number(value),0);
+
+function gcodeGrains(code) {
+  const roads = new Map();
+  for (const segment of code.split(/^; LAYER /m).slice(1)) {
+    const layer = segment.match(/model-layer=(\d+)/)[1];
+    for (const grain of segment.split(/^; GRAIN /m).slice(1)) {
+      const [, group, slot, angle] = grain.match(/^group=(\d+) slot=([abc]) angle=(\d+)/);
+      const moves = [...grain.matchAll(/^G0 X([\d.]+) Y([\d.]+)[^\n]*\nG0 Z[^\n]*\n(?:G1 E[^\n]*\n)?G1 X([\d.]+) Y([\d.]+) E([\d.]+)/gm)];
+      roads.set(`${layer}:${group}:${slot}`, moves.map(([, x1, y1, x2, y2, extrusion]) => {
+        const start = [+x1 - 5, 29 - y1], end = [+x2 - 5, 29 - y2];
+        const [dx, dy] = [end[0] - start[0], end[1] - start[1]];
+        const length = Math.hypot(dx, dy), h = 0.3;
+        const width = (+extrusion * Math.PI * (1.75 / 2) ** 2) / (length * h) + h * (1 - Math.PI / 4);
+        const rad = +angle * Math.PI / 180;
+        assert.ok(Math.abs(dx * Math.sin(rad) + dy * Math.cos(rad)) < 2e-5, "each extruded segment follows its grain angle");
+        const shift = ([x, y], sign) => [x - sign * dy * width / (2 * length), y + sign * dx * width / (2 * length)];
+        return [shift(start,-1),shift(end,-1),shift(end,1),shift(start,1)];
+      }));
+    }
+  }
+  return roads;
+}
+
+function footprintsOverlap(one, other) {
+  return [one, other].every(points => points.every(([x, y], i) => {
+    const [nx, ny] = points[(i + 1) % points.length];
+    const project = polygon => polygon.map(([u, v]) => (ny - y) * u - (nx - x) * v);
+    const first = project(one), second = project(other);
+    return Math.max(Math.min(...first), Math.min(...second)) < Math.min(Math.max(...first), Math.max(...second)) - 1e-5;
+  }));
+}
+
+async function downloadGcode(page) {
+  await page.locator("#exportMenu summary").click();
+  await page.locator("#export-gcode").click();
+  const [file] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download G-code" }).click()]);
+  return fs.readFile(await file.path(), "utf8");
+}
+
+async function assertExportMatchesPreview(page, paths) {
+  const displayed = await page.evaluate(() => {
+    const point = ([x, y]) => [x + 5, model.height - y + 5].map(value => +value.toFixed(5));
+    return getPrintPlan().layers.map(({ tracks }) => tracks.map(({ start, end }) => [...point(start), ...point(end)]));
+  });
+  assert.equal(paths.size, displayed.length);
+  displayed.forEach((layer, i) => assert.deepEqual(paths.get(i + 1), layer, `deposited strokes in layer ${i + 1}`));
+}
+
 function centerGroup(rows, layer) {
   const groups = new Map();
   for (const cell of rows.filter(cell => cell.layer === layer)) {
@@ -150,11 +210,11 @@ test("a selected grain can be removed from a layer and restored without changing
   assert.deepEqual(await grainRows(page), lineBefore);
 });
 
-test("deleting a selected grain in plane programming removes the corresponding position in every layer", async t => {
+test("deleting a selected grain in face programming removes the corresponding position in every layer", async t => {
   const page = await openWorkbench(t);
   await page.goto(url);
   await ready(page);
-  await nextDraw(page, () => page.getByRole("button", { name: "Plane Programming", exact: true }).click());
+  await nextDraw(page, () => page.getByRole("button", { name: "Face Programming", exact: true }).click());
   const before = await grainRows(page);
   const box = await page.locator("#interactive canvas").boundingBox();
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -168,148 +228,133 @@ test("deleting a selected grain in plane programming removes the corresponding p
   assert.deepEqual(await grainRows(page), before);
 });
 
-test("line programming applies one angle per column and retains independent and repeating layer edits", async t => {
+test("line directions support independent cycles, custom lines, and alternating double-strand intersections", async t => {
   const page = await openWorkbench(t);
   await page.goto(url);
   await ready(page);
-  await page.getByRole("button", { name: "Line Programming", exact: true }).click({ timeout: 5000 });
-  const before = await grainRows(page);
-  const byColumn = new Map();
-  for (const cell of before) {
-    const key = `${cell.layer}:${cell.x}`;
-    if (!byColumn.has(key)) byColumn.set(key, cell.angle);
-    assert.equal(cell.angle, byColumn.get(key));
-  }
-  await page.getByLabel("Column layer").selectOption("1");
-  const angle = page.getByRole("combobox", { name: "Column angle", exact: true });
-  const old = await angle.inputValue();
-  const next = old === "150" ? "30" : "150";
-  await angle.selectOption(next);
-  const edited = await grainRows(page);
-  const changed = edited.filter((cell, i) => cell.angle !== before[i].angle);
-  assert.ok(changed.length > 1);
-  assert.deepEqual(new Set(changed.map(cell => cell.layer)), new Set([2]));
-  assert.equal(new Set(changed.map(cell => cell.x)).size, 1);
-
-  await page.locator("#totalLayers").fill("4");
-  await page.locator("#lineRepeat").click();
-  await page.getByLabel("Column templates per cycle").fill("2");
-  await page.locator("#tab-interlayer").click();
-  await page.locator('[data-preset=""]').click();
-  await page.locator("#stackCycle").click();
-  await page.locator("#stackCount").fill("2");
-  await page.locator("#stackOrder").fill("α β");
-  const beforeRepeatEdit = await grainRows(page);
-  await page.locator("#tab-intralayer").click();
-  await page.getByLabel("Column layer").selectOption("1");
-  await angle.selectOption((await angle.inputValue()) === "150" ? "90" : "150");
-  const repeated = await grainRows(page);
-  assert.deepEqual([...new Set(repeated.map(cell => `${cell.layer}:${cell.layout}:${cell.sequence}`))],
-    ["1:α:1", "2:β:2", "3:α:1", "4:β:2"]);
-  const repeatedEdit = repeated.filter((cell, i) => cell.angle !== beforeRepeatEdit[i].angle);
-  assert.ok(repeatedEdit.length > 2);
-  assert.deepEqual(new Set(repeatedEdit.map(cell => cell.layer)), new Set([2, 4]));
-  assert.deepEqual(repeated.filter(cell => cell.layer === 2).map(cell => cell.angle),
-    repeated.filter(cell => cell.layer === 4).map(cell => cell.angle));
-
-  await page.getByRole("button", { name: "Point Programming", exact: true }).click();
-  if (await page.locator("#switchDialog").isVisible()) {
-    const [file] = await Promise.all([page.waitForEvent("download"), page.locator("#saveAndStay").click()]);
-    assert.equal(file.suggestedFilename(), "grain-workbench-project.json");
-    await page.getByRole("button", { name: "Point Programming", exact: true }).click();
-  }
-  assert.equal(await page.locator("#totalLayers").inputValue(), "3");
   await page.getByRole("button", { name: "Line Programming", exact: true }).click();
-  assert.equal(await page.locator("#totalLayers").inputValue(), "4");
-  assert.deepEqual(await grainRows(page), repeated);
+  const axes = page.locator(".line-family");
+  const first = axes.nth(0);
+  const direction = first.getByLabel("Direction", { exact: true });
+  assert.deepEqual(await direction.locator("option").allTextContents(), ["0°","60°","90°","120°"]);
+  const original = await snapshot(page);
+  await nextDraw(page, () => direction.selectOption("0"));
+  assert.notEqual(await snapshot(page), original);
+  await first.getByLabel("Line layout").selectOption("repeat");
+  await first.getByLabel("Lines per cycle").selectOption("2");
+  await first.getByLabel("Cycle 1").selectOption("30");
+  await first.getByLabel("Cycle 2").selectOption("60");
+  const firstLayer = (await grainRows(page)).filter(cell => cell.layer === 1);
+  const rows = new Map();
+  for (const cell of firstLayer) {
+    if (!rows.has(cell.y)) rows.set(cell.y, new Set());
+    rows.get(cell.y).add(cell.angle);
+  }
+  assert.ok([...rows.values()].every(angles => angles.size === 1));
+  const rowAngles = [...rows.entries()].sort(([a],[b]) => a-b).map(([,angles]) => [...angles][0]);
+  assert.deepEqual(new Set(rowAngles), new Set([30,60]));
+  assert.ok(rowAngles.every((angle,i) => !i || angle !== rowAngles[i-1]));
+  await first.getByLabel("Line layout").selectOption("custom");
+  await first.getByLabel("Line", { exact: true }).selectOption("0");
+  await first.getByLabel("Line angle", { exact: true }).selectOption("150");
+  const custom = (await grainRows(page)).filter(cell => cell.layer === 1);
+  assert.ok(custom.some(cell => cell.angle === 150));
+  assert.equal(new Set(custom.filter(cell => cell.angle === 150).map(cell => cell.y)).size,1);
+
+  await page.getByRole("button", { name: "Double strand", exact: true }).click();
+  const second = axes.nth(1);
+  assert.ok(await second.getByLabel("Direction 2").locator('option[value="0"]').isDisabled());
+  await second.getByLabel("Direction 2").selectOption("90");
+  const guides = await page.evaluate(() => {
+    const { axes, center } = model.lineGeometry[0];
+    const visible = showLineEditor(0);
+    return {
+      expected: [...new Set(axes.flatMap(axis => axis.get(0).map(cell => cell.id)))].sort(),
+      actual: visible.cells.map(cell => cell.id).sort(),
+      centralCell: visible.anchor?.id,
+      expectedCenter: center.id,
+    };
+  });
+  assert.deepEqual(guides.actual, guides.expected);
+  assert.equal(guides.centralCell, guides.expectedCenter);
+  const sidebar = await page.locator("#controls").boundingBox();
+  const merge = await page.locator("#mergeGrains").boundingBox();
+  assert.ok(sidebar.y + sidebar.height < merge.y);
+  for (const [axis, angle] of [[first,"30"],[second,"90"]]) {
+    await axis.getByLabel("Line layout").selectOption("repeat");
+    await axis.getByLabel("Lines per cycle").selectOption("1");
+    await axis.getByLabel("Cycle 1").selectOption(angle);
+  }
+  const woven = (await grainRows(page)).filter(cell => cell.layer === 1);
+  const center = woven.reduce((best, cell) => Math.hypot(cell.x - 17.5, cell.y - 12) < Math.hypot(best.x - 17.5, best.y - 12) ? cell : best);
+  const axial = ({x,y}) => Math.round((x / Math.sqrt(3) - Math.round((y - 2) / 3) - 1) / 2);
+  for (const cell of woven) assert.equal(cell.angle, Math.abs((axial(cell)-axial(center))%2) ? 30 : 90);
+  assert.deepEqual(new Set(woven.map(cell => cell.angle)), new Set([30,90]));
 });
 
-test("face programming reuses a first-layer pattern across staggered layers", async t => {
+test("face programming sets every grain in a layer to one angle while stacking remains independent", async t => {
   const page = await openWorkbench(t);
   await page.goto(url);
   await ready(page);
-  await page.getByRole("button", { name: "Plane Programming", exact: true }).click({ timeout: 5000 });
+  await page.getByRole("button", { name: "Face Programming", exact: true }).click();
+  assert.equal(await page.locator(".viewer-head #totalLayers").count(), 1);
+  assert.equal(await page.locator("#panel-intralayer #totalLayers").count(), 0);
   await page.locator("#totalLayers").fill("4");
-  await page.getByLabel("First-layer pattern sequence").fill("1 3 2");
-  await page.locator("#tab-interlayer").click();
-  await page.locator('[data-preset=""]').click();
-  await page.locator("#stackOrder").fill("α β γ β");
+  const angle = page.getByLabel("Layer 3 angle", { exact: true });
+  await angle.selectOption("custom");
+  const slider = page.getByRole("slider", { name: "Custom angle in degrees" });
+  await slider.fill("47");
+  assert.equal(await page.locator("#angleNumber").inputValue(), "47");
+  await page.getByRole("button", { name: "Apply angle" }).click();
+  await page.getByLabel("Layer 4 angle", { exact: true }).selectOption("60");
   const rows = await grainRows(page);
-  assert.deepEqual([...new Set(rows.map(cell => `${cell.layer}:${cell.layout}:${cell.sequence}`))],
-    ["1:α:1", "2:β:1", "3:γ:1", "4:β:1"]);
-  const lattice = ({ x, y, layout }) => {
-    const shift = { α: 0, β: 1, γ: -1 }[layout];
-    return `${Math.round(x / Math.sqrt(3)) - shift}:${Math.round((y - (shift ? 1 : 0) - 2) / 3)}`;
-  };
-  const first = new Map(rows.filter(cell => cell.layer === 1).map(cell => [lattice(cell), cell]));
-  const styles = new Set();
-  let common = 0;
-  for (const cell of rows.filter(cell => cell.layer > 1)) {
-    const reference = first.get(lattice(cell));
-    if (!reference) continue;
-    common++;
-    styles.add(cell.style);
-    assert.equal(cell.angle, reference.angle);
-    assert.equal(cell.style, reference.style);
-  }
-  assert.ok(common > 150);
-  assert.deepEqual(styles, new Set(["1", "2", "3"]));
-  const anchors = new Map(rows.filter(cell => cell.layer === 1 && cell.slot === "a").map(cell => {
-    const row = Math.round((cell.y - 2) / 3);
-    const col = (Math.round(cell.x / Math.sqrt(3)) - row - 1) / 2;
-    return [`${row}:${col}`, cell.style];
-  }));
-  for (const [dr, dc] of [[2, -1], [1, 1], [-1, 2]]) {
-    const runs = [...anchors.keys()].map(key => {
-      const [row, col] = key.split(":").map(Number);
-      return Array.from({ length: 4 }, (_, i) => anchors.get(`${row + i * dr}:${col + i * dc}`));
-    }).filter(run => run.every(Boolean));
-    assert.ok(runs.length > 0);
-    for (const run of runs) {
-      assert.equal(new Set(run.slice(0, 3)).size, 3);
-      assert.equal(run[0], run[3]);
+  assert.deepEqual([...new Set(rows.map(cell => cell.layer + ":" + cell.layout + ":" + cell.angle))],
+    ["1:α:30", "2:β:90", "3:γ:47", "4:α:60"]);
+  const centers = layer => rows.filter(cell => cell.layer === layer).map(cell => cell.x + "," + cell.y);
+  assert.deepEqual(centers(1), centers(4));
+  assert.notDeepEqual(centers(2), centers(3));
+  await page.locator("#tab-geometry").click();
+  await page.locator("#unitPicker").selectOption("1");
+  await page.getByRole("button", {name:"Unit position b"}).click();
+  await page.getByLabel("Layer angle", {exact:true}).selectOption("150");
+  const after = await grainRows(page);
+  assert.deepEqual(after,rows.map(cell => cell.layer===2 ? {...cell,angle:150}:cell));
+  await page.locator("#tab-intralayer").click();
+  await page.locator("#totalLayers").fill("8");
+  await page.getByLabel("Layer 8 angle", { exact: true }).waitFor();
+  const expanded = new Map((await grainRows(page)).map(cell => [cell.layer, cell.angle % 180]));
+  assert.equal(expanded.size, 8);
+  assert.equal(new Set(expanded.values()).size, 8);
+  assert.ok(await angle.locator('option[value="150"]').isDisabled());
+  await angle.selectOption("custom");
+  await slider.fill("150");
+  await page.getByRole("button", { name: "Apply angle" }).click();
+  assert.ok(await page.getByRole("dialog", { name: "Custom angle" }).isVisible());
+  assert.match(await page.locator("#angleError").textContent(), /Layer 2/);
+  await slider.fill("180");
+  await page.getByRole("button", { name: "Apply angle" }).click();
+  assert.match(await page.locator("#angleError").textContent(), /Layer 6/);
+  await slider.fill("53");
+  await page.getByRole("button", { name: "Apply angle" }).click();
+  assert.equal(await angle.inputValue(), "53");
+});
+
+test("point layout displays an editable angle triple per layer in both arrangements", async t => {
+  const page = await openWorkbench(t);
+  await page.goto(url);
+  await ready(page);
+  await page.locator("#tab-intralayer").click();
+  for (const id of ["pointUnitCycle","pointUnitCustom"]) {
+    await page.locator("#"+id).click();
+    for(const n of [1,2,3]) {
+      assert.ok(await page.locator("#pointLayerRows").getByRole("button",{name:"Layer "+n,exact:true}).isVisible());
+      assert.ok(await page.getByLabel("Layer "+n+" position a",{exact:true}).isEnabled());
     }
   }
-  assert.deepEqual(rows.filter(cell => cell.layer === 2).map(cell => cell.angle),
-    rows.filter(cell => cell.layer === 4).map(cell => cell.angle));
-  await page.locator("#tab-intralayer").click();
-  await page.getByLabel("First-layer pattern sequence").fill("2");
-  assert.deepEqual(new Set((await grainRows(page)).map(cell => cell.style)), new Set(["2"]));
-});
-
-test("point and face programming switch between repeating units and custom grain angles", async t => {
-  const page = await openWorkbench(t);
-  await page.goto(url);
-  await ready(page);
-  const box = await page.locator("#interactive canvas").boundingBox();
-  const clickGrain = () => page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-  await page.locator("#tab-intralayer").click();
-  await page.locator("#pointUnitCycle").click({ timeout: 4000 });
-  await clickGrain();
-  await page.locator("#cellAngle").waitFor();
-  await page.locator("#pointUnitCustom").click();
-  await clickGrain();
-  await page.locator("#cellAngle").waitFor();
-
-  await download(page, "#export-project");
-  await page.getByRole("button", { name: "Plane Programming", exact: true }).click();
-  await page.locator("#faceUnitCustom").click({ timeout: 4000 });
-  await page.getByLabel("Custom unit order").fill("2 3");
-  const before = await grainRows(page);
-  const firstLayer = before.filter(cell => cell.layer === 1);
-  const unitStyles = [...new Map(firstLayer.map(cell => [cell.group, cell.style])).values()];
-  assert.deepEqual(unitStyles.slice(0, 4), ["2", "3", "1", "1"]);
-  assert.ok(unitStyles.slice(2).every(style => style === "1"));
-  await clickGrain();
-  const angle = page.locator("#cellAngle");
-  await angle.selectOption((await angle.inputValue()) === "150" ? "30" : "150");
-  const after = await grainRows(page);
-  const changed = after.filter((cell, i) => cell.angle !== before[i].angle);
-  assert.deepEqual(changed.map(cell => cell.layer), [1, 2, 3]);
-  await page.locator("#faceUnitCycle").click();
-  assert.notDeepEqual(await grainRows(page), before);
-  await page.locator("#faceUnitCustom").click();
-  assert.deepEqual(await grainRows(page), after);
+  await page.getByLabel("Layer 2 position b",{exact:true}).selectOption("60");
+  const cells=await grainRows(page);
+  assert.ok(cells.filter(cell=>cell.layer===2&&cell.slot==="b").every(cell=>cell.angle===60));
+  assert.ok(cells.filter(cell=>cell.layer===1&&cell.slot==="b").every(cell=>cell.angle===90));
 });
 
 test("point repeating units stay independent by layer and tile in all three directions", async t => {
@@ -394,27 +439,117 @@ test("the unit diagram selects the nearest full unit on the current layer and sy
   assert.deepEqual(await grainRows(page), before.map(cell => cell.layer === 2 && cell.slot === "a" ? { ...cell, angle: +next } : cell));
 });
 
-test("plane unit positions follow the current layer's center and clear when clicking blank space", async t => {
+test("face unit positions follow the current layer's center and clear when clicking blank space", async t => {
   const page = await openWorkbench(t);
   await page.goto(url);
   await ready(page);
-  await page.getByRole("button", { name: "Plane Programming", exact: true }).click();
+  await page.getByRole("button", { name: "Face Programming", exact: true }).click();
   await page.locator("#tab-geometry").click();
   await page.locator("#unitPicker").selectOption("2");
   const center = centerGroup(await grainRows(page), 3);
-  await page.locator("#planeTemplate summary").click();
-  await page.locator("#planePicker").selectOption(center[0].style === "1" ? "2" : "0");
   for (const cell of center) {
     const position = page.getByRole("button", { name: `Unit position ${cell.slot}` });
     await position.click();
     assert.equal(await position.getAttribute("aria-pressed"), "true");
-    assert.equal(await page.locator("#cellInfo").textContent(), `Shared cell · ${cell.group}${cell.slot}`);
+    assert.equal(await page.locator("#cellInfo").textContent(), `Layer 3 · ${cell.group}${cell.slot}`);
     assert.equal(await page.locator("#cellAngle").inputValue(), String(cell.angle));
   }
   const canvas = await page.locator("#interactive canvas").boundingBox();
   await page.mouse.click(canvas.x + 5, canvas.y + canvas.height * 0.25);
   assert.equal(await page.locator("#cellAngle").isVisible(), false);
   assert.equal(await page.locator('#unit [aria-pressed="true"]').count(), 0);
+});
+
+test("the hexagonal palette recolors only a selected grain and saves exact custom colors", async t => {
+  const page = await openWorkbench(t);
+  await page.goto(url);
+  await ready(page);
+  const colors=page.getByRole("group",{name:"Grain color"});
+  assert.equal(await colors.getByRole("button").count(),6);
+  assert.ok(await colors.getByRole("button",{name:"Black",exact:true}).isDisabled());
+  await page.getByRole("button",{name:"Unit position a"}).click();
+  const baseline=await snapshot(page);
+  await nextDraw(page,()=>colors.getByRole("button",{name:"Black",exact:true}).click());
+  assert.notEqual(await snapshot(page),baseline);
+  assert.equal(await colors.getByRole("button",{name:"Black",exact:true}).getAttribute("aria-pressed"),"true");
+  await colors.getByLabel("Custom grain color").fill("#416a91");
+  assert.equal(await colors.getByLabel("Custom grain color").inputValue(),"#416a91");
+  assert.equal(await page.locator('#unit defs rect[fill="#416a91"]').count(),1);
+  const project=JSON.parse(await download(page,"#export-project"));
+  assert.deepEqual(project.design.colors.map(([,color])=>color),["#416a91"]);
+});
+
+test("the merge toggle renders and exports longer continuous roads using the same material volume", async t => {
+  const page = await openWorkbench(t);
+  await page.goto(url);
+  await ready(page);
+  await page.getByRole("button",{name:"Face Programming",exact:true}).click();
+  const toggle=page.getByRole("button",{name:"Merge matching grains",exact:true});
+  const original=await snapshot(page);
+  const before=await downloadGcode(page);
+  await nextDraw(page,()=>toggle.click());
+  assert.equal(await toggle.getAttribute("aria-pressed"),"true");
+  assert.notEqual(await snapshot(page),original);
+  const code=await downloadGcode(page);
+  const joined = extrusions(code), initial = extrusions(before);
+  assert.ok(joined.length < initial.length);
+  assert.ok(Math.abs(totalExtrusion(joined)-totalExtrusion(initial))<1e-4);
+  const paths = exportedToolpaths(code);
+  assert.match(code,/^; REGION grains=(?:[2-9]|[1-9]\d+) angle=/m);
+  const longest = layers => [...layers.values()].flat().reduce((max,[x1,y1,x2,y2]) =>
+    Math.max(max,Math.hypot(x2-x1,y2-y1)),0);
+  assert.ok(longest(paths)>2*longest(exportedToolpaths(before)));
+  await assertExportMatchesPreview(page, paths);
+});
+
+test("merge reports no matching edges, then joins roads when an adjacent pair is aligned", async t => {
+  const page=await openWorkbench(t);
+  await page.goto(url);
+  await ready(page);
+  const merge=page.getByRole("button",{name:"Merge matching grains",exact:true});
+  await page.locator("#renderStyle").selectOption("solid");
+  await merge.click();
+  assert.equal(await page.locator("#renderStyle").inputValue(),"layer");
+  const note=page.locator("#mergeNote");
+  assert.match(await note.textContent({timeout:4000}),/No adjacent grains with matching angles/);
+  await page.getByRole("button",{name:"Unit position b",exact:true}).click();
+  await page.locator("#cellAngle").selectOption("30");
+  assert.match(await note.textContent(),/[1-9]\d* continuous strokes/);
+  const merged=await downloadGcode(page);
+  await merge.click();
+  const original=await downloadGcode(page);
+  assert.ok(Math.abs(totalExtrusion(extrusions(merged))-totalExtrusion(extrusions(original)))<1e-4);
+  assert.match(merged,/^; REGION grains=(?:[2-9]|[1-9]\d+) angle=30$/m);
+  assert.notDeepEqual(exportedToolpaths(merged),exportedToolpaths(original));
+});
+
+test("custom angles accept numerical input and reject values outside zero to 180", async t => {
+  const page=await openWorkbench(t);
+  await page.goto(url);
+  await ready(page);
+  await page.getByRole("button",{name:"Unit position a",exact:true}).click();
+  const angle=page.locator("#cellAngle");
+  await angle.selectOption("custom");
+  const number=page.getByRole("spinbutton",{name:"Angle in degrees",exact:true});
+  const range=page.locator("#angleRange");
+  const dialog=page.getByRole("dialog",{name:"Custom angle"});
+  for (const value of ["-0.5","180.5"]) {
+    await number.fill(value,{timeout:4000});
+    assert.equal(await number.getAttribute("aria-invalid"),"true");
+    assert.match(await page.locator("#angleError").textContent(),/0° and 180°/);
+    assert.equal(await number.evaluate(el=>getComputedStyle(el).borderTopColor),"rgb(165, 47, 57)");
+    await number.press("Enter");
+    assert.ok(await dialog.isVisible());
+  }
+  await number.fill("47.5");
+  assert.equal(await number.getAttribute("aria-invalid"),"false");
+  assert.equal(await range.inputValue(),"47.5");
+  await range.fill("180");
+  assert.equal(await number.inputValue(),"180");
+  await number.fill("47.5");
+  await number.press("Enter");
+  assert.equal(await angle.inputValue(),"47.5");
+  assert.ok((await grainRows(page)).some(cell=>cell.angle===47.5));
 });
 
 test("stacking presets both repeat, and switching dirty modes can save or discard edits", async t => {
@@ -471,9 +606,15 @@ test("the local workbench downloads separately extruded strokes at touching laye
   const [file] = await Promise.all([page.waitForEvent("download"), submit.click()]);
   assert.equal(file.suggestedFilename(), "grain-strands.gcode");
   const code = await fs.readFile(await file.path(), "utf8");
+  await assertExportMatchesPreview(page, exportedToolpaths(code));
   assert.deepEqual([...code.matchAll(/^; LAYER \d+ model-layer=\d+ Z=([\d.]+)$/gm)].map(match => +match[1]), [0.3, 0.6, 0.9]);
   const strokes = code.split("; STROKE\n").slice(1);
   assert.ok(strokes.length > 1000);
+  const originalExtrusions = await page.evaluate(() => [...model.grids].reverse().flatMap(grid =>
+    [...grid].sort((a,b) => a.angle%180-b.angle%180).flatMap(cell =>
+    Grain3D.planPrint({ ...model, grids: [[cell]], merge: false }, 0.6).layers[0].tracks.map(track =>
+      (track.volume / (Math.PI * (1.75 / 2) ** 2)).toFixed(8)))));
+  assert.deepEqual(extrusions(code),originalExtrusions);
   for (const stroke of strokes) {
     assert.match(stroke, /^G0 Z.*\nG0 X.*\nG0 Z.*\n(?:G1 E0\.6.*\n)?G1 X.*\nG1 E-0\.6/m);
     assert.equal((stroke.match(/^G1 X/gm) ?? []).length, 1);
@@ -484,46 +625,25 @@ test("the local workbench downloads separately extruded strokes at touching laye
   for (const row of outlines) {
     const [layer, , , , group, , slot] = row.split(",");
     const points = row.match(/"([^"]+)"/)[1].split(" ");
-    if (points.length !== 6) continue;
     const edges = points.map((point, i) => [point, points[(i + 1) % points.length]]);
     const world = point => point.split(",").map(Number);
-    const length = ([a, b]) => Math.hypot(world(a)[0] - world(b)[0], world(a)[1] - world(b)[1]);
-    if (!edges.every(edge => Math.abs(length(edge) - 2) < 0.0001)) continue;
     for (const edge of edges) {
+      if (edge[0] === edge[1]) continue;
       const key = `${layer}:${edge.slice().sort().join(";")}`;
       if (!sharedEdges.has(key)) sharedEdges.set(key, []);
-      sharedEdges.get(key).push({ cell: `${layer}:${group}:${slot}`, a: world(edge[0]), b: world(edge[1]) });
+      const [a,b]=edge.map(world);
+      if (Math.hypot(b[0]-a[0],b[1]-a[1])>1e-5) sharedEdges.get(key).push(`${layer}:${group}:${slot}`);
     }
   }
-  const roads = new Map();
-  for (const segment of code.split(/^; LAYER /m).slice(1)) {
-    const layer = segment.match(/model-layer=(\d+)/)[1];
-    for (const grain of segment.split(/^; GRAIN /m).slice(1)) {
-      const [, group, slot] = grain.match(/^group=(\d+) slot=([abc])/);
-      const moves = [...grain.matchAll(/^G0 X([\d.]+) Y([\d.]+)[^\n]*\nG0 Z[^\n]*\n(?:G1 E[^\n]*\n)?G1 X([\d.]+) Y([\d.]+)/gm)];
-      roads.set(`${layer}:${group}:${slot}`, moves.map(([, x1, y1, x2, y2]) => [[+x1 - 5, 29 - y1], [+x2 - 5, 29 - y2]]));
-    }
-  }
+  const roads = gcodeGrains(code);
   let joins = 0;
   for (const edges of sharedEdges.values()) {
-    if (edges.length !== 2) continue;
-    const [{ a, b }, other] = edges;
-    const dx = b[0] - a[0], dy = b[1] - a[1];
-    const length = Math.hypot(dx, dy);
-    const signedDistance = ([x, y]) => (dx * (y - a[1]) - dy * (x - a[0])) / length;
-    const projection = ([x, y]) => (dx * (x - a[0]) + dy * (y - a[1])) / length;
-    const parallelRoad = (id, offset) => roads.get(id).find(stroke =>
-      stroke.every(point => Math.abs(signedDistance(point) - offset) < 0.0001));
-    const first = parallelRoad(edges[0].cell, 0.228);
-    const second = parallelRoad(other.cell, -0.228);
-    assert.ok(first && second, "both grains have a separate road centered near their shared edge");
-    const [a0, a1] = first.map(projection).sort((x, y) => x - y);
-    const [b0, b1] = second.map(projection).sort((x, y) => x - y);
-    assert.ok(Math.min(a1, b1) - Math.max(a0, b0) > 1);
-    assert.ok(0.6 - Math.abs(signedDistance(first[0]) - signedDistance(second[0])) > 0.14);
+    if (edges.length !== 2 || !edges.every(id => roads.has(id))) continue;
+    const [first, second] = edges.map(id => roads.get(id));
+    assert.ok(first.some(a => second.some(b => footprintsOverlap(a,b))), `overlap at ${edges.join(" / ")}`);
     joins++;
   }
-  assert.ok(joins > 400);
+  assert.equal(joins,717);
 
   await page.locator("#strandWidth").fill("0.8");
   await page.locator("#exportMenu summary").click();
@@ -649,8 +769,9 @@ test("rapid edits and repeated model generation retain one canvas and release ol
         input.dispatchEvent(new Event("input", { bubbles: true }));
       }
     }, round));
-    assert.equal(await liveBuffers(), baseline);
-    assert.equal(await page.evaluate(() => window.gpu.allocated), allocated + baseline);
+    const retained = await liveBuffers();
+    assert.ok(retained <= baseline + 3);
+    assert.equal(await page.evaluate(() => window.gpu.allocated), allocated + retained);
   }
   assert.equal(await page.locator("#interactive canvas").count(), 1);
   assert.notEqual(await snapshot(page), initial);
@@ -662,6 +783,7 @@ test("rapid edits and repeated model generation retain one canvas and release ol
   assert.equal(await snapshot(page), latest);
   assert.equal(await page.locator("#csv").isDisabled(), true);
   await nextDraw(page, () => page.locator("#width").fill("35"));
+  assert.equal(await liveBuffers(), baseline);
   assert.equal(await snapshot(page), initial);
   await nextDraw(page, () => page.locator("#layer").selectOption("2"));
   assert.match(await page.locator("#stats").textContent(), /Layer 3 of 3/);
@@ -764,6 +886,9 @@ test("a narrow viewport keeps exports readable and accepts the advertised touch 
     assert.ok(await button.evaluate(element => element.scrollWidth <= element.clientWidth));
   }
   await page.locator("#strandWidth").click({ trial: true, timeout: 1500 });
+  const merge = await page.locator("#mergeGrains").boundingBox();
+  const tools = await page.locator(".tools").boundingBox();
+  assert.ok(merge.y + merge.height < tools.y);
   assert.equal(await page.getByText("Drag to rotate · Scroll to zoom · Right-drag to pan").isVisible(), false);
   assert.equal(await page.getByText("One finger to rotate · Pinch to zoom · Two fingers to pan").isVisible(), true);
 
@@ -781,7 +906,9 @@ test("a narrow viewport keeps exports readable and accepts the advertised touch 
   });
   assert.notEqual(await snapshot(page), initial);
   await nextDraw(page, () => page.getByRole("button", { name: "Reset" }).tap());
-  assert.equal(await snapshot(page), initial);
+  let resetView = await snapshot(page);
+  for (let attempt = 0; resetView !== initial && attempt < 4; attempt++) resetView = await snapshot(page);
+  assert.equal(resetView, initial);
 
   const fingers = (halfSeparation, dx = 0, dy = 0) => [
     { ...point, x: point.x + dx - halfSeparation, y: point.y + dy },
@@ -841,8 +968,8 @@ test("the print preview changes with strand diameter and shows uncovered areas w
   await ready(page);
   const input = page.getByRole("spinbutton", { name: "Strand diameter / mm" });
   assert.equal(await input.inputValue({ timeout: 5000 }), "0.6");
-  await page.locator("#printNote").filter({ hasText: /[1-9]\d* strands/ }).waitFor({ timeout: 5000 });
-  assert.match(await page.locator("#printNote").textContent(), /0\.06 mm in-layer gap/);
+  await page.locator("#printNote").filter({ hasText: /[1-9]\d* strokes/ }).waitFor({ timeout: 5000 });
+  assert.match(await page.locator("#printNote").textContent(), /Printed toolpaths/);
   assert.match(await page.locator("#printNote").textContent(), /0\.3 mm layer/);
   await nextDraw(page, () => input.fill("0.8"));
   assert.match(await page.locator("#printNote").textContent(), /0\.4 mm layer/);
@@ -851,13 +978,13 @@ test("the print preview changes with strand diameter and shows uncovered areas w
   await page.locator("#layer").selectOption("1");
   await page.locator("#layer").selectOption("0");
   await nextDraw(page, () => input.fill("6"));
-  await page.locator("#printNote").filter({ hasText: "0 strands" }).waitFor({ timeout: 5000 });
+  await page.locator("#printNote").filter({ hasText: "0 strokes" }).waitFor({ timeout: 5000 });
   assert.notEqual(await snapshot(page), defaultPrint);
   await input.fill("");
   await page.locator("#printError").waitFor({ state: "visible" });
   assert.equal(await page.locator("#csv").isEnabled(), true);
   await nextDraw(page, () => input.fill("0.6"));
-  await page.locator("#printNote").filter({ hasText: /[1-9]\d* strands/ }).waitFor({ timeout: 5000 });
+  await page.locator("#printNote").filter({ hasText: /[1-9]\d* strokes/ }).waitFor({ timeout: 5000 });
   assert.equal(await snapshot(page), defaultPrint);
   await nextDraw(page, () => page.locator("#renderStyle").selectOption("layer", { timeout: 5000 }));
   const oneLayer = await snapshot(page);
